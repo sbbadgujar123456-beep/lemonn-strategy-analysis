@@ -721,11 +721,12 @@
                         label: s,
                         data: allMetrics[indexStr][s].eqCurve,
                         borderColor: colors[i % colors.length],
-                        backgroundColor: 'transparent',
+                        backgroundColor: colors[i % colors.length],
                         borderWidth: 2,
-                        tension: 0.3,
+                        tension: 0.4, // Slightly smoother curves
                         pointRadius: 0,
-                        pointHitRadius: 10
+                        pointHitRadius: 15, // Easier to hover over
+                        pointHoverRadius: 5
                     }
                 });
 
@@ -737,13 +738,55 @@
                         maintainAspectRatio: false,
                         interaction: { mode: 'index', intersect: false },
                         plugins: {
-                            legend: { labels: { color: '#9ca3af', usePointStyle: true, boxWidth: 6 } }
+                            legend: { 
+                                position: 'top',
+                                align: 'center',
+                                labels: { 
+                                    color: '#d1d5db', // Lighter text
+                                    usePointStyle: true, 
+                                    pointStyle: 'circle',
+                                    boxWidth: 8,
+                                    boxHeight: 8,
+                                    padding: 24, // Fixes the overlapping issue
+                                    font: {
+                                        family: "'Inter', sans-serif",
+                                        size: 13,
+                                        weight: '500'
+                                    }
+                                } 
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(15, 17, 26, 0.95)',
+                                titleColor: '#ffffff',
+                                bodyColor: '#d1d5db',
+                                borderColor: '#262a40',
+                                borderWidth: 1,
+                                padding: 12,
+                                boxPadding: 6,
+                                usePointStyle: true,
+                                titleFont: { family: "'Inter', sans-serif", size: 13 },
+                                bodyFont: { family: "'Inter', sans-serif", size: 12 },
+                                callbacks: {
+                                    label: function(context) {
+                                        return ' ' + context.dataset.label + ': ' + context.parsed.y.toFixed(2) + '%';
+                                    }
+                                }
+                            }
                         },
                         scales: {
-                            x: { grid: { color: '#262a40' }, ticks: { color: '#6b7280' } },
+                            x: { 
+                                grid: { color: 'rgba(38, 42, 64, 0.3)', drawBorder: false }, 
+                                ticks: { color: '#6b7280', font: { family: "'Inter', sans-serif" }, padding: 8 } 
+                            },
                             y: { 
-                                grid: { color: '#262a40' }, 
-                                ticks: { color: '#6b7280', callback: function(value) { return value + "%" } } 
+                                border: { dash: [4, 4] },
+                                grid: { color: 'rgba(38, 42, 64, 0.3)', drawBorder: false, tickLength: 0 }, 
+                                ticks: { 
+                                    color: '#6b7280', 
+                                    font: { family: "'Inter', sans-serif" },
+                                    padding: 8,
+                                    callback: function(value) { return value + "%" } 
+                                } 
                             }
                         }
                     }
