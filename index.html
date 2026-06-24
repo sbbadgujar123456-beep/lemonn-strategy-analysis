@@ -127,6 +127,7 @@
             </div>
         </div>
         <div class="p-4 border-t border-dark-700 hidden md:block text-xs text-gray-500 text-center">
+            Local Storage Active<br>Data safe on reload.
         </div>
     </nav>
 
@@ -194,11 +195,12 @@
                 </div>
             </header>
 
-            <div class="glass rounded-xl border border-dark-700 overflow-hidden overflow-x-auto">
+            <div class="glass rounded-xl border border-dark-700 overflow-hidden overflow-x-auto relative">
                 <table class="w-full text-sm text-left">
                     <thead class="text-xs text-gray-400 uppercase bg-dark-800 border-b border-dark-700">
                         <tr>
-                            <th class="px-6 py-4">Strategy</th>
+                            <!-- Made Strategy column sticky -->
+                            <th class="px-6 py-4 sticky left-0 bg-dark-800 z-20 shadow-[4px_0_10px_rgba(0,0,0,0.3)] min-w-[200px]">Strategy</th>
                             <th class="px-6 py-4 text-right" title="Overall Average">Avg Return</th>
                             <th class="px-6 py-4 text-right" title="Average return on Non-Expiry days">Non-Exp Avg</th>
                             <th class="px-6 py-4 text-right" title="Average return on Expiry days">Exp Avg</th>
@@ -219,12 +221,14 @@
         <!-- DATA ENTRY VIEW -->
         <div id="data-view" class="p-6 md:p-10 max-w-screen-2xl mx-auto space-y-6 hidden">
             
-            <header class="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+            <header class="flex flex-col xl:flex-row xl:justify-between xl:items-center gap-4">
                 <div>
                     <h1 class="text-3xl font-bold tracking-tight text-white">Daily Data Entry</h1>
-                    <p class="text-gray-400 mt-1"></p>
+                    <p class="text-gray-400 mt-1">Enter daily strategy returns (%)</p>
                 </div>
-                <div class="flex gap-3">
+                
+                <!-- Action Controls (Import/Export/Add) -->
+                <div class="flex flex-wrap items-center gap-3">
                     <div class="flex items-center glass px-3 py-1.5 rounded-lg border border-dark-700 focus-within:border-brand-primary transition-colors">
                         <input type="date" id="manual-date-input" class="bg-transparent border-none text-sm text-gray-300 outline-none w-36">
                         <button onclick="addDateManually()" class="ml-2 text-brand-primary hover:text-brand-accent transition-colors">
@@ -234,10 +238,21 @@
                     <button onclick="promptAddStrategy()" class="bg-dark-800 hover:bg-dark-700 text-white px-4 py-2 rounded-lg border border-dark-700 transition-colors flex items-center gap-2 text-sm font-medium">
                         <i class="ph-bold ph-plus-circle"></i> Add Strategy
                     </button>
+                    
+                    <div class="w-px h-8 bg-dark-700 mx-1 hidden sm:block"></div>
+                    
+                    <!-- Backup & Restore Buttons -->
+                    <input type="file" id="import-file" accept=".json" class="hidden" onchange="importData(event)">
+                    <button onclick="triggerImport()" class="bg-dark-800/80 hover:bg-dark-700 text-gray-300 hover:text-white px-3 py-2 rounded-lg border border-dark-700 transition-colors flex items-center gap-2 text-sm font-medium" title="Restore from Backup">
+                        <i class="ph-bold ph-upload-simple"></i> Import
+                    </button>
+                    <button onclick="exportData()" class="bg-dark-800/80 hover:bg-dark-700 text-gray-300 hover:text-white px-3 py-2 rounded-lg border border-dark-700 transition-colors flex items-center gap-2 text-sm font-medium" title="Save Backup to Computer">
+                        <i class="ph-bold ph-download-simple"></i> Export
+                    </button>
                 </div>
             </header>
 
-            <div class="glass rounded-xl border border-dark-700 overflow-hidden overflow-x-auto shadow-2xl">
+            <div class="glass rounded-xl border border-dark-700 overflow-hidden overflow-x-auto shadow-2xl relative">
                 <table class="w-full text-sm text-left">
                     <thead class="text-xs text-gray-400 uppercase bg-dark-800 border-b border-dark-700" id="data-table-head">
                         <!-- Dynamically built header -->
@@ -247,7 +262,7 @@
                     </tbody>
                 </table>
             </div>
-            <p class="text-xs text-gray-500 text-center pb-10"></p>
+            <p class="text-xs text-gray-500 text-center pb-10">Tip: Use Export/Import to securely backup your data to a file. It survives browser cache clears!</p>
         </div>
 
     </main>
@@ -341,6 +356,47 @@
 
         function saveState() {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        }
+
+        // --- Data Persistence / Backup Features ---
+        function exportData() {
+            const dataStr = JSON.stringify(state, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `QDash_Backup_${formatDate(new Date())}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function triggerImport() {
+            document.getElementById('import-file').click();
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedState = JSON.parse(e.target.result);
+                    // Basic structural validation
+                    if (importedState.strategies && importedState.data && importedState.dates) {
+                        state = importedState;
+                        saveState();
+                        alert("✅ Data imported successfully! Rebuilding dashboard...");
+                        location.reload(); // Refresh to clean slate
+                    } else {
+                        alert("❌ Invalid backup file. Missing critical data structures.");
+                    }
+                } catch (err) {
+                    alert("❌ Error reading or parsing the file.");
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = ''; // Reset input to allow re-uploading same file
         }
 
         function generateMissingDates() {
@@ -559,12 +615,12 @@
             const head = document.getElementById('data-table-head');
             const tbody = document.getElementById('data-table-body');
 
-            // Build Header
+            // Build Header with 2 Sticky Columns
             let headHTML = `<tr>
-                <th class="px-4 py-3 sticky left-0 bg-dark-800 z-20 shadow-[2px_0_5px_rgba(0,0,0,0.5)]">Date</th>
-                <th class="px-4 py-3 border-r border-dark-700 min-w-[120px]">Index</th>`;
+                <th class="px-4 py-3 sticky left-0 bg-dark-800 z-30 min-w-[140px] w-[140px]">Date</th>
+                <th class="px-4 py-3 sticky left-[140px] bg-dark-800 z-30 border-r border-dark-700 min-w-[120px] w-[120px] shadow-[4px_0_10px_rgba(0,0,0,0.3)]">Index</th>`;
             state.strategies.forEach(s => {
-                headHTML += `<th class="px-4 py-3 text-right min-w-[150px]"><div class="flex justify-end">${s}</div></th>`;
+                headHTML += `<th class="px-4 py-3 text-right min-w-[160px]"><div class="flex justify-end">${s}</div></th>`;
             });
             headHTML += `</tr>`;
             head.innerHTML = headHTML;
@@ -585,13 +641,13 @@
                     ? "bg-brand-warning/20 text-brand-warning border-brand-warning/50 shadow-[0_0_10px_rgba(245,158,11,0.25)]" 
                     : "bg-dark-800 text-gray-600 border-dark-700 hover:text-gray-300 hover:border-dark-500";
 
-                // Nifty Row
+                // Nifty Row (with 2 Sticky Cells)
                 bodyHTML += `<tr class="hover:bg-dark-800/50 transition-colors">
-                    <td class="px-4 py-3 whitespace-nowrap bg-dark-900 border-r border-dark-700 sticky left-0 z-10 font-medium flex items-center justify-between group shadow-[2px_0_5px_rgba(0,0,0,0.2)]">
+                    <td class="px-4 py-3 whitespace-nowrap bg-dark-900 border-r border-dark-700 sticky left-0 z-20 font-medium flex items-center justify-between group min-w-[140px] w-[140px]">
                         ${date}
                         <button onclick="deleteDate('${date}')" class="text-dark-600 group-hover:text-brand-danger transition-colors" title="Delete Date"><i class="ph-bold ph-x"></i></button>
                     </td>
-                    <td class="px-4 py-3 text-brand-accent font-semibold bg-dark-900/50 border-r border-dark-700">
+                    <td class="px-4 py-3 text-brand-accent font-semibold bg-dark-900 border-r border-dark-700 sticky left-[140px] z-20 min-w-[120px] w-[120px] shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
                         <div class="flex items-center justify-between">
                             <span>Nifty</span>
                             <button onclick="toggleExpiryUI(this, '${date}', 'Nifty')" class="text-[10px] font-bold px-2.5 py-1 rounded transition-all duration-300 border cursor-pointer uppercase ${niftyExpClass}" title="Toggle Expiry Day">Exp</button>
@@ -610,10 +666,10 @@
                 });
                 bodyHTML += `</tr>`;
 
-                // Sensex Row
+                // Sensex Row (with 2 Sticky Cells)
                 bodyHTML += `<tr class="hover:bg-dark-800/50 transition-colors border-b-[3px] border-dark-700">
-                    <td class="px-4 py-3 whitespace-nowrap bg-dark-900 border-r border-dark-700 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.2)]"></td>
-                    <td class="px-4 py-3 text-gray-400 font-semibold bg-dark-900/50 border-r border-dark-700">
+                    <td class="px-4 py-3 whitespace-nowrap bg-dark-900 border-r border-dark-700 sticky left-0 z-20 min-w-[140px] w-[140px]"></td>
+                    <td class="px-4 py-3 text-gray-400 font-semibold bg-dark-900 border-r border-dark-700 sticky left-[140px] z-20 min-w-[120px] w-[120px] shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
                         <div class="flex items-center justify-between">
                             <span>Sensex</span>
                             <button onclick="toggleExpiryUI(this, '${date}', 'Sensex')" class="text-[10px] font-bold px-2.5 py-1 rounded transition-all duration-300 border cursor-pointer uppercase ${sensexExpClass}" title="Toggle Expiry Day">Exp</button>
@@ -838,7 +894,7 @@
 
                 html += `
                 <tr class="hover:bg-dark-800 transition-colors">
-                    <td class="px-6 py-4 font-medium flex items-center gap-2">
+                    <td class="px-6 py-4 font-medium flex items-center gap-2 sticky left-0 bg-dark-900 z-10 shadow-[4px_0_10px_rgba(0,0,0,0.3)] border-r border-dark-700 min-w-[200px]">
                         <span class="w-3 h-3 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.3)]" style="background-color: ${colors[i%colors.length]}"></span>
                         ${s}
                     </td>
