@@ -679,14 +679,14 @@
                 datasets.push({
                     label: s + " (Solo)",
                     data: allIndividualMetrics[index][s].eqCurve,
-                    borderColor: sColor + '80', // Add transparency
+                    borderColor: sColor + '80', 
                     backgroundColor: 'transparent',
                     borderWidth: 1.5,
                     borderDash: [5, 5],
                     tension: 0.4,
                     pointRadius: 0,
                     pointHitRadius: 10,
-                    order: 2 // draw behind
+                    order: 2 
                 });
             });
 
@@ -694,14 +694,14 @@
             datasets.push({
                 label: 'Combined Portfolio',
                 data: combinedMetrics.eqCurve,
-                borderColor: '#ffffff', // White line for combo
+                borderColor: '#ffffff', 
                 backgroundColor: 'rgba(255, 255, 255, 0.1)',
                 borderWidth: 3.5,
                 tension: 0.4,
                 pointRadius: 0,
                 pointHitRadius: 15,
                 fill: true,
-                order: 1 // draw on top
+                order: 1 
             });
 
             const config = {
@@ -714,22 +714,22 @@
                     plugins: {
                         legend: { 
                             position: 'top',
-                            labels: { color: '#d1d5db', usePointStyle: true, boxWidth: 6, font: { family: "'Inter', sans-serif", size: 11} } 
+                            labels: { color: '#f9fafb', usePointStyle: true, boxWidth: 6, font: { family: "'Inter', sans-serif", size: 12, weight: '600'} } 
                         },
                         tooltip: {
-                            backgroundColor: 'rgba(15, 17, 26, 0.95)', titleColor: '#ffffff', bodyColor: '#d1d5db',
-                            borderColor: '#262a40', borderWidth: 1, padding: 12, usePointStyle: true,
+                            backgroundColor: 'rgba(30, 34, 52, 0.95)', titleColor: '#ffffff', bodyColor: '#ffffff',
+                            borderColor: '#4b5563', borderWidth: 1, padding: 12, usePointStyle: true,
                             callbacks: {
                                 label: function(ctx) { return ' ' + ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(2) + '%'; }
                             }
                         }
                     },
                     scales: {
-                        x: { display: false }, // Hide X axis to keep it clean for combo charts
+                        x: { display: false }, 
                         y: { 
                             border: { dash: [4, 4] },
-                            grid: { color: 'rgba(38, 42, 64, 0.3)' }, 
-                            ticks: { color: '#6b7280', font: { family: "'Inter', sans-serif" }, callback: (v) => v + "%" } 
+                            grid: { color: 'rgba(75, 85, 99, 0.2)' }, 
+                            ticks: { color: '#9ca3af', font: { family: "'Inter', sans-serif" }, callback: (v) => v + "%" } 
                         }
                     }
                 }
@@ -761,11 +761,11 @@
                     options: {
                         responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
                         plugins: {
-                            legend: { labels: { color: '#d1d5db', usePointStyle: true, boxWidth: 8, font: { family: "'Inter', sans-serif", size: 12} } }
+                            legend: { labels: { color: '#f9fafb', usePointStyle: true, boxWidth: 8, font: { family: "'Inter', sans-serif", size: 13, weight: '600'} } }
                         },
                         scales: {
                             x: { grid: { display: false }, ticks: { display: false } },
-                            y: { border: { dash: [4, 4] }, grid: { color: 'rgba(38, 42, 64, 0.3)' }, ticks: { color: '#6b7280', callback: (v) => v + "%" } }
+                            y: { border: { dash: [4, 4] }, grid: { color: 'rgba(75, 85, 99, 0.2)' }, ticks: { color: '#9ca3af', callback: (v) => v + "%" } }
                         }
                     }
                 };
