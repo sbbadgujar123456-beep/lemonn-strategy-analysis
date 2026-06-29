@@ -524,30 +524,7 @@
                 if(!state.expiries[date]) state.expiries[date] = { Nifty: false, Sensex: false };
             });
             
-            // Seed sample data if completely empty for demonstration
-            if (state.dates.length > 0 && Object.keys(state.data[state.dates[0]].Nifty).length === 0) {
-                seedSampleData();
-            }
-
             saveState();
-        }
-
-        function seedSampleData() {
-            // Helper to generate a somewhat realistic curve (drift + noise)
-            state.dates.forEach((d, i) => {
-                state.strategies.forEach((s, idx) => {
-                    // Create some artificial correlation and noise
-                    let baseNoise = (Math.random() * 4) - 2; // -2 to +2
-                    let stratEdge = [0.2, 0.1, -0.1, 0.3][idx % 4]; 
-                    
-                    let niftyVal = (baseNoise + stratEdge + (Math.random() > 0.8 ? (Math.random()*3) : 0)).toFixed(2);
-                    let sensexVal = (baseNoise + stratEdge + (Math.random() > 0.8 ? (Math.random()*-3) : 0)).toFixed(2);
-                    
-                    if(!state.data[d]) state.data[d] = { Nifty: {}, Sensex: {} };
-                    state.data[d].Nifty[s] = niftyVal;
-                    state.data[d].Sensex[s] = sensexVal;
-                });
-            });
         }
 
         // Calculation of scoring metrics for ANY equity curve logic
