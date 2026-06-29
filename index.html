@@ -139,21 +139,25 @@
                 <p class="text-gray-400 mt-1">AI Recommendation & Equity Curves</p>
             </header>
 
-            <!-- Recommendation Engine Box -->
-            <div class="glass p-8 rounded-2xl relative overflow-hidden group">
-                <div class="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <i class="ph-fill ph-target text-9xl text-brand-primary"></i>
+            <!-- AI Recommendation Grid -->
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <!-- Nifty AI Box -->
+                <div class="glass p-6 md:p-8 rounded-2xl relative overflow-hidden group border border-brand-primary/20">
+                    <div class="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <i class="ph-fill ph-target text-8xl text-brand-primary"></i>
+                    </div>
+                    <div class="relative z-10" id="rec-nifty">
+                        <!-- Dynamic Nifty combo loads here -->
+                    </div>
                 </div>
-                <div class="relative z-10" id="recommendation-content">
-                    <!-- Dynamic recommendation will load here -->
-                    <div class="animate-pulse flex space-x-4">
-                        <div class="flex-1 space-y-4 py-1">
-                            <div class="h-4 bg-dark-700 rounded w-3/4"></div>
-                            <div class="space-y-2">
-                                <div class="h-4 bg-dark-700 rounded"></div>
-                                <div class="h-4 bg-dark-700 rounded w-5/6"></div>
-                            </div>
-                        </div>
+                
+                <!-- Sensex AI Box -->
+                <div class="glass p-6 md:p-8 rounded-2xl relative overflow-hidden group border border-brand-accent/20">
+                    <div class="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <i class="ph-fill ph-target text-8xl text-brand-accent"></i>
+                    </div>
+                    <div class="relative z-10" id="rec-sensex">
+                        <!-- Dynamic Sensex combo loads here -->
                     </div>
                 </div>
             </div>
@@ -629,23 +633,21 @@
             };
         }
 
-        // AI Engine: Finds best individual OR best combo
-        function getBestOverall(indexStr) {
-            let bestConfig = null;
+        // AI Engine: Finds best combinations
+        function getAIRecommendations(indexStr) {
+            let bestCombo = null;
             let highestScore = -Infinity;
             let maxDays = 0;
 
-            // Generate all configurations (Singles, Pairs, Trios)
             let testConfigs = [];
-            // 1. Singles
-            state.strategies.forEach(s => testConfigs.push([s]));
-            // 2. Pairs
+            
+            // 1. Pairs
             for(let i=0; i<state.strategies.length; i++) {
                 for(let j=i+1; j<state.strategies.length; j++) {
                     testConfigs.push([state.strategies[i], state.strategies[j]]);
                 }
             }
-            // 3. Trios
+            // 2. Trios
             for(let i=0; i<state.strategies.length; i++) {
                 for(let j=i+1; j<state.strategies.length; j++) {
                     for(let k=j+1; k<state.strategies.length; k++) {
@@ -653,7 +655,18 @@
                     }
                 }
             }
+            // 3. Quads
+            for(let i=0; i<state.strategies.length; i++) {
+                for(let j=i+1; j<state.strategies.length; j++) {
+                    for(let k=j+1; k<state.strategies.length; k++) {
+                        for(let l=k+1; l<state.strategies.length; l++) {
+                            testConfigs.push([state.strategies[i], state.strategies[j], state.strategies[k], state.strategies[l]]);
+                        }
+                    }
+                }
+            }
 
+            // Test Combinations
             testConfigs.forEach(config => {
                 const m = getMetrics(config, indexStr);
                 if (m.returns.length > maxDays) maxDays = m.returns.length;
@@ -661,11 +674,22 @@
                 // Requirement: 7 days min for AI recommendation
                 if (m.returns.length >= 7 && m.score > highestScore) {
                     highestScore = m.score;
-                    bestConfig = m;
+                    bestCombo = m;
                 }
             });
 
-            return { best: bestConfig, maxDays: maxDays };
+            // Fallback: Test Singles in case user only has 1 strategy or combinations are all terrible
+            let bestSingle = null;
+            let highSingle = -Infinity;
+            state.strategies.forEach(s => {
+                 let m = getMetrics([s], indexStr);
+                 if (m.returns.length >= 7 && m.score > highSingle) {
+                     highSingle = m.score;
+                     bestSingle = m;
+                 }
+            });
+
+            return { best: bestCombo || bestSingle, maxDays: maxDays };
         }
 
         // --- Renderers ---
@@ -777,61 +801,69 @@
         }
 
         function renderDashboard() {
-            const niftyAI = getBestOverall('Nifty');
-            const sensexAI = getBestOverall('Sensex');
-            const recContent = document.getElementById('recommendation-content');
+            const niftyAI = getAIRecommendations('Nifty');
+            const sensexAI = getAIRecommendations('Sensex');
             
-            // Pick absolute best between the two indices
-            let absoluteBest = null;
-            let indexName = '';
-            let maxDays = Math.max(niftyAI.maxDays, sensexAI.maxDays);
-
-            if(niftyAI.best && sensexAI.best) {
-                if(niftyAI.best.score >= sensexAI.best.score) { absoluteBest = niftyAI.best; indexName = 'Nifty'; } 
-                else { absoluteBest = sensexAI.best; indexName = 'Sensex'; }
-            } else if (niftyAI.best) { absoluteBest = niftyAI.best; indexName = 'Nifty'; }
-            else if (sensexAI.best) { absoluteBest = sensexAI.best; indexName = 'Sensex'; }
-
-            if (absoluteBest) {
-                let nameStr = absoluteBest.names.join(' <span class="text-gray-500 font-light mx-2">+</span> ');
-                let comboBadge = absoluteBest.isCombo ? `<span class="bg-brand-primary text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded ml-3">Combined Portfolio</span>` : '';
-                let pfText = absoluteBest.profitFactor === 99 ? '∞' : absoluteBest.profitFactor.toFixed(2);
-
-                recContent.innerHTML = `
-                    <div class="flex items-center gap-2 mb-2">
-                        <h2 class="text-3xl md:text-4xl font-bold text-white flex items-center flex-wrap">${nameStr}</h2>
-                        ${comboBadge}
-                    </div>
-                    <div class="flex items-center gap-2 mb-6">
-                        <span class="text-brand-primary text-xl font-normal">on ${indexName}</span>
-                        <span class="text-brand-success text-xs border border-brand-success px-2 py-0.5 rounded-full ml-2">${absoluteBest.score.toFixed(1)}/10 Score</span>
-                    </div>
-                    <p class="text-gray-400 mb-6 max-w-2xl text-sm leading-relaxed">
-                        Based on advanced quantitative analysis. This configuration yields the highest risk-adjusted return (Sharpe: ${absoluteBest.sharpe.toFixed(2)}). ${absoluteBest.isCombo ? 'By combining these strategies, volatility is reduced, though execution costs are factored in.' : ''}
-                    </p>
+            // Reusable renderer for the AI cards
+            const buildRecHTML = (aiResult, indexName, colorClass) => {
+                if (aiResult.best) {
+                    let m = aiResult.best;
+                    let nameStr = m.names.join(' <span class="text-gray-500 font-light mx-1">+</span> ');
+                    let pfText = m.profitFactor === 99 ? '∞' : m.profitFactor.toFixed(2);
+                    let titleType = m.isCombo ? 'Top Portfolio' : 'Top Single Strategy';
                     
-                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6 border-t border-dark-700/50 pt-6">
-                        <div><p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Score (/10)</p><p class="text-2xl font-bold text-brand-primary">${absoluteBest.score.toFixed(1)}</p></div>
-                        <div><p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Profit Factor</p><p class="text-2xl font-bold text-white">${pfText}</p></div>
-                        <div><p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Avg Return</p><p class="text-2xl font-bold text-white">${absoluteBest.avg.toFixed(2)}%</p></div>
-                        <div><p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Max Drawdown</p><p class="text-2xl font-bold text-brand-danger">${absoluteBest.maxDD.toFixed(2)}%</p></div>
-                        <div><p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Win Rate</p><p class="text-2xl font-bold text-white">${absoluteBest.wr.toFixed(0)}%</p></div>
-                    </div>
-                `;
-            } else if (maxDays > 0) {
-                recContent.innerHTML = `<h2 class="text-2xl font-bold text-gray-300 mb-2">Analyzing Data...</h2><p class="text-brand-warning text-sm mt-2 flex items-center gap-2"><i class="ph-bold ph-warning-circle"></i> AI Recommendation requires at least 7 days of data for statistical significance. Currently at ${maxDays} days.</p>`;
-            } else {
-                recContent.innerHTML = `<h2 class="text-2xl font-bold text-gray-300 mb-2">Awaiting Data</h2><p class="text-gray-500 text-sm">Please enter strategy returns in the Data Entry tab to generate recommendations.</p>`;
-            }
+                    return `
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="${colorClass} text-sm font-bold uppercase tracking-widest flex items-center gap-1.5"><i class="ph-bold ph-sparkle"></i> ${indexName} ${titleType}</span>
+                        </div>
+                        <h2 class="text-xl md:text-2xl font-bold text-white flex items-center flex-wrap mb-4 leading-snug">
+                            ${nameStr}
+                        </h2>
+                        
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 border-t border-dark-700/50 pt-4">
+                            <div>
+                                <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Score</p>
+                                <p class="text-lg font-bold ${colorClass}">${m.score.toFixed(1)} <span class="text-xs text-gray-500 font-normal">/10</span></p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Profit Factor</p>
+                                <p class="text-lg font-bold text-white">${pfText}</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Avg Return</p>
+                                <p class="text-lg font-bold text-white">${m.avg.toFixed(2)}%</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Max Drawdown</p>
+                                <p class="text-lg font-bold text-brand-danger">${m.maxDD.toFixed(2)}%</p>
+                            </div>
+                        </div>
+                    `;
+                } else if (aiResult.maxDays > 0) {
+                    return `
+                        <h2 class="text-xl font-bold text-gray-300 mb-2">${indexName} Analysis...</h2>
+                        <p class="text-brand-warning text-sm mt-2 flex items-center gap-2"><i class="ph-bold ph-warning-circle"></i> Requires 7 days data. Currently at ${aiResult.maxDays}.</p>
+                    `;
+                } else {
+                    return `
+                        <h2 class="text-xl font-bold text-gray-300 mb-2">${indexName} Awaiting Data</h2>
+                        <p class="text-gray-500 text-sm">Add data in Data Entry tab.</p>
+                    `;
+                }
+            };
+
+            // Inject into UI
+            document.getElementById('rec-nifty').innerHTML = buildRecHTML(niftyAI, 'Nifty', 'text-brand-primary');
+            document.getElementById('rec-sensex').innerHTML = buildRecHTML(sensexAI, 'Sensex', 'text-brand-accent');
 
             // Dashboard Charts: Plot AI recommendation components + Combined
             const plotAIChart = (canvasId, aiResult, indexStr) => {
                 if (charts[canvasId]) charts[canvasId].destroy();
                 let chartData = [];
                 if (aiResult.best) {
-                    // Always plot the individual components
+                    // Plot the individual components
                     aiResult.best.names.forEach(s => chartData.push(getMetrics([s], indexStr)));
-                    // If combo, plot the combined line too
+                    // If combo, plot the combined thick white line too
                     if(aiResult.best.isCombo) chartData.push(aiResult.best);
                 } else {
                     // Fallback: plot all singles
