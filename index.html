@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quant Dashboard</title>
+    <title>Quant Dashboard - Advanced Strategy Combiner</title>
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -100,6 +100,39 @@
             -webkit-appearance: none; 
             margin: 0; 
         }
+        
+        /* Custom Checkbox */
+        .custom-checkbox {
+            appearance: none;
+            background-color: #1a1d2d;
+            margin: 0;
+            font: inherit;
+            color: currentColor;
+            width: 1.15em;
+            height: 1.15em;
+            border: 2px solid #4b5563;
+            border-radius: 0.15em;
+            display: grid;
+            place-content: center;
+            transition: 0.2s all ease-in-out;
+            cursor: pointer;
+        }
+        .custom-checkbox::before {
+            content: "";
+            width: 0.65em;
+            height: 0.65em;
+            transform: scale(0);
+            transition: 120ms transform ease-in-out;
+            box-shadow: inset 1em 1em #6366f1;
+            transform-origin: center;
+            clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+        }
+        .custom-checkbox:checked {
+            border-color: #6366f1;
+        }
+        .custom-checkbox:checked::before {
+            transform: scale(1);
+        }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden antialiased selection:bg-brand-primary/30">
@@ -136,13 +169,13 @@
             
             <header>
                 <h1 class="text-3xl font-bold tracking-tight text-white">Strategy Overview</h1>
-                <p class="text-gray-400 mt-1">AI Recommendation & Equity Curves</p>
+                <p class="text-gray-400 mt-1">AI Recommendation, Combinations & Equity Curves</p>
             </header>
 
             <!-- Recommendation Engine Box -->
-            <div class="glass p-8 rounded-2xl relative overflow-hidden group">
+            <div class="glass p-8 rounded-2xl relative overflow-hidden group border border-brand-primary/30">
                 <div class="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <i class="ph-fill ph-target text-9xl text-brand-primary"></i>
+                    <i class="ph-fill ph-crown text-9xl text-brand-primary"></i>
                 </div>
                 <div class="relative z-10" id="recommendation-content">
                     <!-- Dynamic recommendation will load here -->
@@ -158,20 +191,78 @@
                 </div>
             </div>
 
-            <!-- Charts Container -->
+            <!-- Best Combinations Row -->
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                <!-- Nifty Combo -->
+                <div class="glass p-6 rounded-2xl border border-brand-success/20">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
+                        <span class="flex items-center gap-2"><i class="ph-fill ph-intersect text-brand-success"></i> Best Nifty Combination</span>
+                        <span class="text-xs bg-brand-success/10 text-brand-success px-2 py-1 rounded-md border border-brand-success/20">AI Generated</span>
+                    </h3>
+                    <div id="nifty-combo-stats" class="mb-4 text-sm text-gray-400 min-h-[40px]">Analyzing synergies...</div>
+                    <div class="h-[250px] w-full">
+                        <canvas id="bestNiftyComboChart"></canvas>
+                    </div>
+                </div>
+                <!-- Sensex Combo -->
+                <div class="glass p-6 rounded-2xl border border-brand-accent/20">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
+                        <span class="flex items-center gap-2"><i class="ph-fill ph-intersect text-brand-accent"></i> Best Sensex Combination</span>
+                        <span class="text-xs bg-brand-accent/10 text-brand-accent px-2 py-1 rounded-md border border-brand-accent/20">AI Generated</span>
+                    </h3>
+                    <div id="sensex-combo-stats" class="mb-4 text-sm text-gray-400 min-h-[40px]">Analyzing synergies...</div>
+                    <div class="h-[250px] w-full">
+                        <canvas id="bestSensexComboChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manual Combiner Section -->
+            <div class="glass p-6 rounded-2xl border border-dark-700">
+                <h3 class="text-xl font-bold mb-1 flex items-center gap-2 text-white">
+                    <i class="ph ph-sliders-horizontal text-brand-primary"></i> Manual Combiner Studio
+                </h3>
+                <p class="text-sm text-gray-400 mb-6">Build your own portfolio. Combining strategies averages returns and hedges risk, but incurs multi-execution drag (simulated 0.02% penalty per extra strategy).</p>
+                
+                <div class="flex flex-col lg:flex-row gap-8">
+                    <!-- Controls -->
+                    <div class="w-full lg:w-1/3 space-y-6">
+                        <!-- Index Selection -->
+                        <div class="bg-dark-800 p-1 rounded-lg inline-flex w-full">
+                            <button onclick="setCombinerIndex('Nifty')" id="combiner-idx-nifty" class="w-1/2 py-2 text-sm font-medium rounded-md bg-dark-700 text-white shadow transition-all">Nifty</button>
+                            <button onclick="setCombinerIndex('Sensex')" id="combiner-idx-sensex" class="w-1/2 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all">Sensex</button>
+                        </div>
+                        
+                        <!-- Strategy Checkboxes -->
+                        <div class="space-y-3" id="combiner-checkboxes">
+                            <!-- Dynamically populated -->
+                        </div>
+
+                        <!-- Stats Preview -->
+                        <div class="bg-dark-900/50 rounded-xl p-4 border border-dark-700 space-y-3" id="manual-combiner-stats">
+                            <!-- Stats populate here -->
+                        </div>
+                    </div>
+
+                    <!-- Chart -->
+                    <div class="w-full lg:w-2/3">
+                        <div class="h-[350px] w-full bg-dark-900/30 rounded-xl p-4 border border-dark-700">
+                            <canvas id="manualComboChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Individual Charts Container -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div class="glass p-6 rounded-2xl">
-                    <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
-                        <i class="ph ph-trend-up text-brand-accent"></i> Nifty Equity Curves
-                    </h3>
+                    <h3 class="text-lg font-semibold mb-4 text-gray-300">All Nifty Curves</h3>
                     <div class="h-[300px] w-full">
                         <canvas id="niftyChart"></canvas>
                     </div>
                 </div>
                 <div class="glass p-6 rounded-2xl">
-                    <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
-                        <i class="ph ph-trend-up text-brand-accent"></i> Sensex Equity Curves
-                    </h3>
+                    <h3 class="text-lg font-semibold mb-4 text-gray-300">All Sensex Curves</h3>
                     <div class="h-[300px] w-full">
                         <canvas id="sensexChart"></canvas>
                     </div>
@@ -184,7 +275,7 @@
             <header class="flex justify-between items-end">
                 <div>
                     <h1 class="text-3xl font-bold tracking-tight text-white">Deep Analysis</h1>
-                    <p class="text-gray-400 mt-1">Detailed statistical breakdown</p>
+                    <p class="text-gray-400 mt-1">Detailed statistical breakdown of individual strategies</p>
                 </div>
                 <div class="glass p-1 rounded-lg inline-flex">
                     <button onclick="setAnalysisIndex('Nifty')" id="btn-analyze-nifty" class="px-4 py-2 text-sm font-medium rounded-md bg-dark-700 text-white shadow transition-all">Nifty</button>
@@ -192,11 +283,10 @@
                 </div>
             </header>
 
-            <div class="glass rounded-xl border border-dark-700 overflow-hidden overflow-x-auto relative">
+            <div class="glass rounded-xl border border-dark-700 overflow-hidden overflow-x-auto relative shadow-2xl">
                 <table class="w-full text-sm text-left">
                     <thead class="text-xs text-gray-400 uppercase bg-dark-800 border-b border-dark-700">
                         <tr>
-                            <!-- Made Strategy column sticky -->
                             <th class="px-6 py-4 sticky left-0 bg-dark-800 z-20 shadow-[4px_0_10px_rgba(0,0,0,0.3)] min-w-[200px]">Strategy</th>
                             <th class="px-6 py-4 text-right" title="Overall Average">Avg Return</th>
                             <th class="px-6 py-4 text-right" title="Average return on Non-Expiry days">Non-Exp Avg</th>
@@ -223,10 +313,9 @@
             <header class="flex flex-col xl:flex-row xl:justify-between xl:items-center gap-4">
                 <div>
                     <h1 class="text-3xl font-bold tracking-tight text-white">Daily Data Entry</h1>
-                    <p class="text-gray-400 mt-1">Enter daily strategy returns (%)</p>
+                    <p class="text-gray-400 mt-1">Enter daily strategy returns (%) to fuel the AI engine.</p>
                 </div>
                 
-                <!-- Action Controls (Import/Export/Add) -->
                 <div class="flex flex-wrap items-center gap-3">
                     <div class="flex items-center glass px-3 py-1.5 rounded-lg border border-dark-700 focus-within:border-brand-primary transition-colors">
                         <input type="date" id="manual-date-input" class="bg-transparent border-none text-sm text-gray-300 outline-none w-36">
@@ -240,7 +329,6 @@
                     
                     <div class="w-px h-8 bg-dark-700 mx-1 hidden sm:block"></div>
                     
-                    <!-- Backup & Restore Buttons -->
                     <input type="file" id="import-file" accept=".json" class="hidden" onchange="importData(event)">
                     <button onclick="triggerImport()" class="bg-dark-800/80 hover:bg-dark-700 text-gray-300 hover:text-white px-3 py-2 rounded-lg border border-dark-700 transition-colors flex items-center gap-2 text-sm font-medium" title="Restore from Backup">
                         <i class="ph-bold ph-upload-simple"></i> Import
@@ -268,14 +356,14 @@
     <!-- JavaScript Logic -->
     <script>
         // --- Core State Management ---
-        const STORAGE_KEY = 'quant_dashboard_data_v2'; // Bumped version for new format
+        const STORAGE_KEY = 'quant_dashboard_data_v3'; 
         
         let state = {
             strategies: ['SwingKing Sniper', 'Booming Bulls', 'Bullseys', 'Aakash'],
-            dates: [], // Auto-populated
-            deletedDates: [], // Track user deleted dates
-            data: {}, // Format: { "23-Jun-2026": { "Nifty": { "Strat": 10.5 }, "Sensex": { ... } } }
-            expiries: {} // Format: { "23-Jun-2026": { "Nifty": true, "Sensex": false } }
+            dates: [], 
+            deletedDates: [], 
+            data: {}, 
+            expiries: {} 
         };
 
         const colors = [
@@ -291,7 +379,21 @@
 
         let currentTab = 'dashboard';
         let analysisIndex = 'Nifty';
-        let charts = { nifty: null, sensex: null };
+        
+        // Chart instances
+        let charts = { 
+            nifty: null, 
+            sensex: null,
+            bestNiftyCombo: null,
+            bestSensexCombo: null,
+            manualCombo: null
+        };
+
+        // Combiner State
+        let combinerState = {
+            index: 'Nifty',
+            selectedStrategies: [] // Will auto-select top 2 on load
+        };
 
         // --- Math & Analytics Utilities ---
         const MathUtils = {
@@ -303,15 +405,15 @@
                 return Math.sqrt(variance);
             },
             equityCurve: arr => {
-                let curve = [0]; // Start at 0
+                let curve = [0]; 
                 let current = 0;
                 for(let val of arr) {
-                    current += val; // Simple additive compounding for percentages
+                    current += val; 
                     curve.push(current);
                 }
                 return curve;
             },
-            cumulativeReturn: arr => arr.reduce((a, b) => a + b, 0), // Additive
+            cumulativeReturn: arr => arr.reduce((a, b) => a + b, 0), 
             maxDrawdown: curve => {
                 let maxDD = 0;
                 let peak = curve[0];
@@ -325,8 +427,8 @@
             winRate: arr => arr.length ? (arr.filter(x => x > 0).length / arr.length) * 100 : 0
         };
 
-        // --- Date Utilities ---
-        const START_DATE = new Date("2026-06-23T00:00:00");
+        // --- Dates Setup ---
+        const START_DATE = new Date("2026-06-10T00:00:00"); // Backdated slightly to auto-generate data
 
         function formatDate(date) {
             const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -336,6 +438,7 @@
             return `${d}-${m}-${y}`;
         }
 
+        // --- Data Persistence ---
         function loadState() {
             const saved = localStorage.getItem(STORAGE_KEY);
             if (saved) {
@@ -356,7 +459,6 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         }
 
-        // --- Data Persistence / Backup Features ---
         function exportData() {
             const dataStr = JSON.stringify(state, null, 2);
             const blob = new Blob([dataStr], { type: 'application/json' });
@@ -380,21 +482,20 @@
             reader.onload = function(e) {
                 try {
                     const importedState = JSON.parse(e.target.result);
-                    // Basic structural validation
                     if (importedState.strategies && importedState.data && importedState.dates) {
                         state = importedState;
                         saveState();
-                        alert("✅ Data imported successfully! Rebuilding dashboard...");
-                        location.reload(); // Refresh to clean slate
+                        alert("✅ Data imported successfully!");
+                        location.reload(); 
                     } else {
-                        alert("❌ Invalid backup file. Missing critical data structures.");
+                        alert("❌ Invalid backup file.");
                     }
                 } catch (err) {
-                    alert("❌ Error reading or parsing the file.");
+                    alert("❌ Error parsing the file.");
                 }
             };
             reader.readAsText(file);
-            event.target.value = ''; // Reset input to allow re-uploading same file
+            event.target.value = ''; 
         }
 
         function generateMissingDates() {
@@ -406,7 +507,6 @@
             
             while (current <= tomorrow) {
                 let dayOfWeek = current.getDay();
-                // Skip Saturday (6) and Sunday (0)
                 if (dayOfWeek !== 0 && dayOfWeek !== 6) {
                     let dateStr = formatDate(current);
                     
@@ -417,141 +517,78 @@
                 current.setDate(current.getDate() + 1);
             }
 
-            // Ensure sorting
             state.dates.sort((a, b) => new Date(a) - new Date(b));
 
-            // Ensure data object and expiries exist for dates
             state.dates.forEach(date => {
                 if(!state.data[date]) state.data[date] = { Nifty: {}, Sensex: {} };
                 if(!state.expiries[date]) state.expiries[date] = { Nifty: false, Sensex: false };
             });
             
+            // Seed sample data if completely empty for demonstration
+            if (state.dates.length > 0 && Object.keys(state.data[state.dates[0]].Nifty).length === 0) {
+                seedSampleData();
+            }
+
             saveState();
         }
 
-        function switchTab(tabId) {
-            currentTab = tabId;
-            
-            // Hide all views
-            document.getElementById('dashboard-view').classList.add('hidden');
-            document.getElementById('analysis-view').classList.add('hidden');
-            document.getElementById('data-view').classList.add('hidden');
-            
-            // Reset nav styles
-            ['dashboard', 'analysis', 'data'].forEach(t => {
-                const el = document.getElementById(`nav-${t}`);
-                el.className = "flex items-center gap-3 w-full p-3 rounded-lg text-gray-400 hover:text-white hover:bg-dark-800 transition-all group";
+        function seedSampleData() {
+            // Helper to generate a somewhat realistic curve (drift + noise)
+            state.dates.forEach((d, i) => {
+                state.strategies.forEach((s, idx) => {
+                    // Create some artificial correlation and noise
+                    let baseNoise = (Math.random() * 4) - 2; // -2 to +2
+                    let stratEdge = [0.2, 0.1, -0.1, 0.3][idx % 4]; 
+                    
+                    let niftyVal = (baseNoise + stratEdge + (Math.random() > 0.8 ? (Math.random()*3) : 0)).toFixed(2);
+                    let sensexVal = (baseNoise + stratEdge + (Math.random() > 0.8 ? (Math.random()*-3) : 0)).toFixed(2);
+                    
+                    if(!state.data[d]) state.data[d] = { Nifty: {}, Sensex: {} };
+                    state.data[d].Nifty[s] = niftyVal;
+                    state.data[d].Sensex[s] = sensexVal;
+                });
             });
-
-            // Show active view and style nav
-            document.getElementById(`${tabId}-view`).classList.remove('hidden');
-            document.getElementById(`nav-${tabId}`).className = "flex items-center gap-3 w-full p-3 rounded-lg text-brand-primary bg-brand-primary/10 transition-all hover:bg-brand-primary/20 group";
-
-            if (tabId === 'dashboard') renderDashboard();
-            if (tabId === 'analysis') renderAnalysis();
-            if (tabId === 'data') renderDataEntry();
         }
 
-        function setAnalysisIndex(index) {
-            analysisIndex = index;
-            if(index === 'Nifty') {
-                document.getElementById('btn-analyze-nifty').className = "px-4 py-2 text-sm font-medium rounded-md bg-dark-700 text-white shadow transition-all";
-                document.getElementById('btn-analyze-sensex').className = "px-4 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all";
-            } else {
-                document.getElementById('btn-analyze-sensex').className = "px-4 py-2 text-sm font-medium rounded-md bg-dark-700 text-white shadow transition-all";
-                document.getElementById('btn-analyze-nifty').className = "px-4 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all";
-            }
-            renderAnalysis();
-        }
-
-        // --- Data Manipulation ---
-        function promptAddStrategy() {
-            const name = prompt("Enter new strategy name:");
-            if (name && name.trim() && !state.strategies.includes(name.trim())) {
-                state.strategies.push(name.trim());
-                saveState();
-                renderDataEntry();
-            }
-        }
-
-        function addDateManually() {
-            const input = document.getElementById('manual-date-input').value;
-            if (!input) return;
+        // Calculation of scoring metrics for ANY equity curve logic
+        function calculateScoreMetrics(returns, normalReturns, expiryReturns, grossProfit, grossLoss) {
+            const avg = MathUtils.average(returns);
+            const normalAvg = MathUtils.average(normalReturns);
+            const expiryAvg = MathUtils.average(expiryReturns);
+            const std = MathUtils.stdDev(returns);
+            const eqCurve = MathUtils.equityCurve(returns);
+            const totalRet = MathUtils.cumulativeReturn(returns);
+            const maxDD = MathUtils.maxDrawdown(eqCurve);
+            const wr = MathUtils.winRate(returns);
             
-            let d = new Date(input);
-            let newDateStr = formatDate(d);
-            
-            if (!state.dates.includes(newDateStr)) {
-                state.dates.push(newDateStr);
-                state.dates.sort((a, b) => new Date(a) - new Date(b)); // Keep sorted
-                state.data[newDateStr] = { Nifty: {}, Sensex: {} };
-                state.expiries[newDateStr] = { Nifty: false, Sensex: false };
-                state.deletedDates = state.deletedDates.filter(x => x !== newDateStr); // remove from deleted
-                saveState();
-                renderDataEntry();
-            }
-        }
+            const profitFactor = grossLoss === 0 ? (grossProfit === 0 ? 0 : 99) : (grossProfit / grossLoss);
+            const sharpe = std === 0 ? 0 : (avg / std);
 
-        function deleteDate(dateStr) {
-            state.dates = state.dates.filter(d => d !== dateStr);
-            if (!state.deletedDates.includes(dateStr)) {
-                state.deletedDates.push(dateStr); // remember so generator doesn't bring it back
-            }
-            delete state.data[dateStr];
-            delete state.expiries[dateStr];
-            saveState();
-            renderDataEntry();
-        }
+            let score = 0;
+            if (returns.length > 0) {
+                let wrScore = (wr / 100) * 4;
+                let sharpeScore = Math.max(0, Math.min(sharpe * 7, 3.5));
+                let pfScore = Math.max(0, Math.min((profitFactor - 1) * 1.5, 2.5));
+                let ddPenalty = maxDD * 0.15; // Increased penalty for drawdowns
+                
+                score = wrScore + sharpeScore + pfScore - ddPenalty;
 
-        function updateData(date, index, strategy, value) {
-            if(!state.data[date]) state.data[date] = { Nifty: {}, Sensex: {} };
-            if(!state.data[date][index]) state.data[date][index] = {};
-            
-            state.data[date][index][strategy] = value;
-            saveState();
-        }
-
-        // Handle Interactive Expiry Toggle Button
-        function toggleExpiryUI(btnEl, date, index) {
-            let isActive = state.expiries[date]?.[index] || false;
-            let newState = !isActive;
-            
-            if(!state.expiries[date]) state.expiries[date] = { Nifty: false, Sensex: false };
-            state.expiries[date][index] = newState;
-            saveState();
-            
-            // Visual Update for the Button
-            if (newState) {
-                btnEl.className = "text-[10px] font-bold px-2.5 py-1 rounded transition-all duration-300 border cursor-pointer uppercase bg-brand-warning/20 text-brand-warning border-brand-warning/50 shadow-[0_0_10px_rgba(245,158,11,0.25)]";
-            } else {
-                btnEl.className = "text-[10px] font-bold px-2.5 py-1 rounded transition-all duration-300 border cursor-pointer uppercase bg-dark-800 text-gray-600 border-dark-700 hover:text-gray-300 hover:border-dark-500";
-            }
-        }
-
-        // Handle Real-time Profit/Loss Color Highlighting
-        function updateInputColor(inputEl) {
-            let val = parseFloat(inputEl.value);
-            // Remove specific colors
-            inputEl.classList.remove('!bg-brand-success/10', '!border-brand-success/50', '!text-brand-success', '!bg-brand-danger/10', '!border-brand-danger/50', '!text-brand-danger');
-            
-            if (!isNaN(val)) {
-                if (val > 0) {
-                    inputEl.classList.add('!bg-brand-success/10', '!border-brand-success/50', '!text-brand-success');
-                } else if (val < 0) {
-                    inputEl.classList.add('!bg-brand-danger/10', '!border-brand-danger/50', '!text-brand-danger');
+                if (normalAvg < 0 && expiryAvg > 0) {
+                    score -= 2.0; 
                 }
+                score = Math.max(0, Math.min(10, score));
             }
+
+            return {
+                returns, avg, normalAvg, expiryAvg, std, totalRet, maxDD, wr,
+                profitFactor, sharpe, score, eqCurve, expiryCount: expiryReturns.length
+            };
         }
 
-        // --- Data Computation ---
         function getStrategyMetrics(strategy, index) {
-            let returns = [];
-            let normalReturns = [];
-            let expiryReturns = [];
-            let grossProfit = 0;
-            let grossLoss = 0;
+            let returns = [], normalReturns = [], expiryReturns = [];
+            let grossProfit = 0, grossLoss = 0;
             
-            // Chronological order for equity curve
             state.dates.forEach(d => {
                 let val = state.data[d]?.[index]?.[strategy];
                 let isExp = state.expiries[d]?.[index] || false;
@@ -567,51 +604,77 @@
                 }
             });
 
-            const avg = MathUtils.average(returns);
-            const normalAvg = MathUtils.average(normalReturns);
-            const expiryAvg = MathUtils.average(expiryReturns);
-            const std = MathUtils.stdDev(returns);
-            const eqCurve = MathUtils.equityCurve(returns);
-            const totalRet = MathUtils.cumulativeReturn(returns);
-            const maxDD = MathUtils.maxDrawdown(eqCurve);
-            const wr = MathUtils.winRate(returns);
+            return calculateScoreMetrics(returns, normalReturns, expiryReturns, grossProfit, grossLoss);
+        }
+
+        function getCombinedMetrics(strategiesToCombine, index) {
+            let returns = [], normalReturns = [], expiryReturns = [];
+            let grossProfit = 0, grossLoss = 0;
+
+            const dragPerExtraStrategy = 0.02; // Realistic transaction cost simulated drag
             
-            // Advanced Metrics
-            const profitFactor = grossLoss === 0 ? (grossProfit === 0 ? 0 : 99) : (grossProfit / grossLoss);
-            const sharpe = std === 0 ? 0 : (avg / std);
+            state.dates.forEach(d => {
+                let dailyTotal = 0;
+                let count = 0;
+                let isExp = state.expiries[d]?.[index] || false;
+                
+                strategiesToCombine.forEach(s => {
+                    let val = state.data[d]?.[index]?.[s];
+                    if (val !== undefined && val !== null && val !== "") {
+                        dailyTotal += parseFloat(val);
+                        count++;
+                    }
+                });
+                
+                if (count > 0) {
+                    // Average out the returns for equal weight portfolio
+                    let avgDaily = dailyTotal / count;
+                    // Apply drag penalty
+                    let drag = (count > 1) ? ((count - 1) * dragPerExtraStrategy) : 0;
+                    let netDaily = avgDaily - drag;
 
-            // Consistency Score Calculation (0 to 10 Scale)
-            let score = 0;
-            if (returns.length > 0) {
-                // 1. Win Rate Contribution (Max 4 pts)
-                let wrScore = (wr / 100) * 4;
-                
-                // 2. Risk-Adjusted Return (Max 3.5 pts) - Caps at a daily sharpe of 0.5
-                let sharpeScore = Math.max(0, Math.min(sharpe * 7, 3.5));
-                
-                // 3. Profit Factor Contribution (Max 2.5 pts) - Caps at PF of 2.6+
-                let pfScore = Math.max(0, Math.min((profitFactor - 1) * 1.5, 2.5));
-                
-                // 4. Drawdown Penalty (-1 pt for every 10% drawdown)
-                let ddPenalty = maxDD * 0.1; 
-                
-                // Combine
-                score = wrScore + sharpeScore + pfScore - ddPenalty;
+                    returns.push(netDaily);
+                    if (isExp) expiryReturns.push(netDaily);
+                    else normalReturns.push(netDaily);
 
-                // Expiry Skew Penalty:
-                // If strategy only profits on expiry but bleeds on normal days, penalize heavily
-                if (normalAvg < 0 && expiryAvg > 0) {
-                    score -= 2.0; 
+                    if (netDaily > 0) grossProfit += netDaily;
+                    else if (netDaily < 0) grossLoss += Math.abs(netDaily);
                 }
+            });
 
-                // Bound score exactly between 0.0 and 10.0
-                score = Math.max(0, Math.min(10, score));
+            const metrics = calculateScoreMetrics(returns, normalReturns, expiryReturns, grossProfit, grossLoss);
+            metrics.strategies = strategiesToCombine;
+            return metrics;
+        }
+
+        // Generate subsets of strategies (length >= 2)
+        function getCombinations(array, minLength) {
+            const result = [];
+            const f = (prefix, arr) => {
+                for (let i = 0; i < arr.length; i++) {
+                    const newPrefix = [...prefix, arr[i]];
+                    if (newPrefix.length >= minLength) result.push(newPrefix);
+                    f(newPrefix, arr.slice(i + 1));
+                }
             }
+            f([], array);
+            return result;
+        }
 
-            return {
-                returns, avg, normalAvg, expiryAvg, std, totalRet, maxDD, wr,
-                profitFactor, sharpe, score, eqCurve, expiryCount: expiryReturns.length
-            };
+        function findBestCombination(index) {
+            const allCombos = getCombinations(state.strategies, 2);
+            let bestCombo = null;
+            let highestScore = -Infinity;
+
+            allCombos.forEach(combo => {
+                const metrics = getCombinedMetrics(combo, index);
+                if (metrics.returns.length >= 7 && metrics.score > highestScore) {
+                    highestScore = metrics.score;
+                    bestCombo = metrics;
+                }
+            });
+
+            return bestCombo;
         }
 
         function getAllMetrics() {
@@ -623,107 +686,130 @@
             return res;
         }
 
-        // --- Renderers ---
-        function renderDataEntry() {
-            const head = document.getElementById('data-table-head');
-            const tbody = document.getElementById('data-table-body');
 
-            // Build Header with 2 Sticky Columns
-            let headHTML = `<tr>
-                <th class="px-4 py-3 sticky left-0 bg-dark-800 z-30 min-w-[140px] w-[140px]">Date</th>
-                <th class="px-4 py-3 sticky left-[140px] bg-dark-800 z-30 border-r border-dark-700 min-w-[120px] w-[120px] shadow-[4px_0_10px_rgba(0,0,0,0.3)]">Index</th>`;
-            state.strategies.forEach(s => {
-                headHTML += `<th class="px-4 py-3 text-right min-w-[160px]"><div class="flex justify-end">${s}</div></th>`;
-            });
-            headHTML += `</tr>`;
-            head.innerHTML = headHTML;
+        function renderComboChart(canvasId, index, strategiesList, combinedMetrics, chartInstanceKey) {
+            const allIndividualMetrics = getAllMetrics();
+            
+            let labels = ['Start']; 
+            let maxLen = combinedMetrics.returns.length;
+            for(let i=1; i<=maxLen; i++) labels.push(`T+${i}`);
 
-            // Build Body
-            let bodyHTML = '';
+            let datasets = [];
 
-            // Render from newest to oldest for easier entry
-            [...state.dates].reverse().forEach(date => {
-                
-                let isNiftyExp = state.expiries[date]?.Nifty;
-                let niftyExpClass = isNiftyExp 
-                    ? "bg-brand-warning/20 text-brand-warning border-brand-warning/50 shadow-[0_0_10px_rgba(245,158,11,0.25)]" 
-                    : "bg-dark-800 text-gray-600 border-dark-700 hover:text-gray-300 hover:border-dark-500";
-
-                let isSensexExp = state.expiries[date]?.Sensex;
-                let sensexExpClass = isSensexExp 
-                    ? "bg-brand-warning/20 text-brand-warning border-brand-warning/50 shadow-[0_0_10px_rgba(245,158,11,0.25)]" 
-                    : "bg-dark-800 text-gray-600 border-dark-700 hover:text-gray-300 hover:border-dark-500";
-
-                // Nifty Row (with 2 Sticky Cells)
-                bodyHTML += `<tr class="group hover:bg-dark-800 transition-colors">
-                    <td class="px-4 py-3 whitespace-nowrap bg-dark-900 group-hover:bg-dark-800 border-r border-dark-700 sticky left-0 z-20 font-medium flex items-center justify-between min-w-[140px] w-[140px]">
-                        ${date}
-                        <button onclick="deleteDate('${date}')" class="text-dark-600 hover:text-brand-danger transition-colors" title="Delete Date"><i class="ph-bold ph-x"></i></button>
-                    </td>
-                    <td class="px-4 py-3 text-brand-accent font-semibold bg-dark-900 group-hover:bg-dark-800 border-r border-dark-700 sticky left-[140px] z-20 min-w-[120px] w-[120px] shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
-                        <div class="flex items-center justify-between">
-                            <span>Nifty</span>
-                            <button onclick="toggleExpiryUI(this, '${date}', 'Nifty')" class="text-[10px] font-bold px-2.5 py-1 rounded transition-all duration-300 border cursor-pointer uppercase ${niftyExpClass}" title="Toggle Expiry Day">Exp</button>
-                        </div>
-                    </td>`;
-                
-                state.strategies.forEach(s => {
-                    let val = state.data[date]?.Nifty?.[s] ?? '';
-                    let numVal = parseFloat(val);
-                    let colorClasses = '';
-                    if (!isNaN(numVal)) {
-                        if (numVal > 0) colorClasses = '!bg-brand-success/10 !border-brand-success/50 !text-brand-success';
-                        else if (numVal < 0) colorClasses = '!bg-brand-danger/10 !border-brand-danger/50 !text-brand-danger';
-                    }
-                    bodyHTML += `<td class="px-4 py-3"><input type="number" step="any" class="data-input transition-colors duration-300 ${colorClasses}" placeholder="0.00" value="${val}" oninput="updateInputColor(this)" onchange="updateData('${date}', 'Nifty', '${s}', this.value)"></td>`;
+            // 1. Individual Strategies (Dashed, muted)
+            strategiesList.forEach((s, i) => {
+                let sColor = colors[state.strategies.indexOf(s) % colors.length];
+                datasets.push({
+                    label: s + " (Solo)",
+                    data: allIndividualMetrics[index][s].eqCurve,
+                    borderColor: sColor + '80', // Add transparency
+                    backgroundColor: 'transparent',
+                    borderWidth: 1.5,
+                    borderDash: [5, 5],
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHitRadius: 10,
+                    order: 2 // draw behind
                 });
-                bodyHTML += `</tr>`;
-
-                // Sensex Row (with 2 Sticky Cells)
-                bodyHTML += `<tr class="group hover:bg-dark-800 transition-colors border-b-[3px] border-dark-700">
-                    <td class="px-4 py-3 whitespace-nowrap bg-dark-900 group-hover:bg-dark-800 border-r border-dark-700 sticky left-0 z-20 min-w-[140px] w-[140px]"></td>
-                    <td class="px-4 py-3 text-gray-400 font-semibold bg-dark-900 group-hover:bg-dark-800 border-r border-dark-700 sticky left-[140px] z-20 min-w-[120px] w-[120px] shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
-                        <div class="flex items-center justify-between">
-                            <span>Sensex</span>
-                            <button onclick="toggleExpiryUI(this, '${date}', 'Sensex')" class="text-[10px] font-bold px-2.5 py-1 rounded transition-all duration-300 border cursor-pointer uppercase ${sensexExpClass}" title="Toggle Expiry Day">Exp</button>
-                        </div>
-                    </td>`;
-                
-                state.strategies.forEach(s => {
-                    let val = state.data[date]?.Sensex?.[s] ?? '';
-                    let numVal = parseFloat(val);
-                    let colorClasses = '';
-                    if (!isNaN(numVal)) {
-                        if (numVal > 0) colorClasses = '!bg-brand-success/10 !border-brand-success/50 !text-brand-success';
-                        else if (numVal < 0) colorClasses = '!bg-brand-danger/10 !border-brand-danger/50 !text-brand-danger';
-                    }
-                    bodyHTML += `<td class="px-4 py-3"><input type="number" step="any" class="data-input transition-colors duration-300 ${colorClasses}" placeholder="0.00" value="${val}" oninput="updateInputColor(this)" onchange="updateData('${date}', 'Sensex', '${s}', this.value)"></td>`;
-                });
-                bodyHTML += `</tr>`;
             });
 
-            if (state.dates.length === 0) {
-                bodyHTML = `<tr><td colspan="${state.strategies.length + 2}" class="text-center py-8 text-gray-500">No dates generated. Check settings.</td></tr>`;
-            }
+            // 2. The Combined Strategy Line (Thick, prominent)
+            datasets.push({
+                label: 'Combined Portfolio',
+                data: combinedMetrics.eqCurve,
+                borderColor: '#ffffff', // White line for combo
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                borderWidth: 3.5,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHitRadius: 15,
+                fill: true,
+                order: 1 // draw on top
+            });
 
-            tbody.innerHTML = bodyHTML;
+            const config = {
+                type: 'line',
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { 
+                            position: 'top',
+                            labels: { color: '#d1d5db', usePointStyle: true, boxWidth: 6, font: { family: "'Inter', sans-serif", size: 11} } 
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 17, 26, 0.95)', titleColor: '#ffffff', bodyColor: '#d1d5db',
+                            borderColor: '#262a40', borderWidth: 1, padding: 12, usePointStyle: true,
+                            callbacks: {
+                                label: function(ctx) { return ' ' + ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(2) + '%'; }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { display: false }, // Hide X axis to keep it clean for combo charts
+                        y: { 
+                            border: { dash: [4, 4] },
+                            grid: { color: 'rgba(38, 42, 64, 0.3)' }, 
+                            ticks: { color: '#6b7280', font: { family: "'Inter', sans-serif" }, callback: (v) => v + "%" } 
+                        }
+                    }
+                }
+            };
+
+            if (charts[chartInstanceKey]) charts[chartInstanceKey].destroy();
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            charts[chartInstanceKey] = new Chart(ctx, config);
+        }
+
+        function renderBaseCharts(allMetrics) {
+            const createChartConfig = (indexStr) => {
+                let labels = ['Start']; 
+                let maxLen = 0;
+                state.strategies.forEach(s => {
+                    if (allMetrics[indexStr][s].returns.length > maxLen) maxLen = allMetrics[indexStr][s].returns.length;
+                });
+                for(let i=1; i<=maxLen; i++) labels.push(`T+${i}`);
+
+                let datasets = state.strategies.map((s, i) => ({
+                    label: s, data: allMetrics[indexStr][s].eqCurve,
+                    borderColor: colors[i % colors.length], backgroundColor: colors[i % colors.length],
+                    borderWidth: 2, tension: 0.4, pointRadius: 0, pointHitRadius: 15
+                }));
+
+                return {
+                    type: 'line',
+                    data: { labels, datasets },
+                    options: {
+                        responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: { labels: { color: '#d1d5db', usePointStyle: true, boxWidth: 8, font: { family: "'Inter', sans-serif", size: 12} } }
+                        },
+                        scales: {
+                            x: { grid: { display: false }, ticks: { display: false } },
+                            y: { border: { dash: [4, 4] }, grid: { color: 'rgba(38, 42, 64, 0.3)' }, ticks: { color: '#6b7280', callback: (v) => v + "%" } }
+                        }
+                    }
+                };
+            };
+
+            if (charts.nifty) charts.nifty.destroy();
+            charts.nifty = new Chart(document.getElementById('niftyChart').getContext('2d'), createChartConfig('Nifty'));
+
+            if (charts.sensex) charts.sensex.destroy();
+            charts.sensex = new Chart(document.getElementById('sensexChart').getContext('2d'), createChartConfig('Sensex'));
         }
 
         function renderDashboard() {
             const allMetrics = getAllMetrics();
-            const recContent = document.getElementById('recommendation-content');
             
-            // Find best overall based on Consistency Score
+            // 1. Single Best Strategy Overall
             let bestOverall = null;
             let highestScore = -Infinity;
-            let maxDaysRecorded = 0;
-
             ['Nifty', 'Sensex'].forEach(index => {
                 state.strategies.forEach(s => {
                     const m = allMetrics[index][s];
-                    if (m.returns.length > maxDaysRecorded) maxDaysRecorded = m.returns.length;
-                    
-                    // REQUIRE MIN 7 DAYS FOR AI RECOMMENDATION
                     if (m.returns.length >= 7 && m.score > highestScore) {
                         highestScore = m.score;
                         bestOverall = { strategy: s, index: index, metrics: m };
@@ -731,156 +817,152 @@
                 });
             });
 
-            // Render Recommendation
+            const recContent = document.getElementById('recommendation-content');
             if (bestOverall) {
                 const m = bestOverall.metrics;
-
                 recContent.innerHTML = `
                     <h2 class="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center flex-wrap gap-2">
                         ${bestOverall.strategy} <span class="text-brand-primary text-xl font-normal">on ${bestOverall.index}</span>
                         <span class="text-brand-success text-xs border border-brand-success px-2 py-0.5 rounded-full ml-2">${m.score.toFixed(1)}/10 Score</span>
                     </h2>
                     <p class="text-gray-400 mb-6 max-w-2xl text-sm leading-relaxed">
-                        Based on advanced quantitative analysis. This engine scores strategies out of 10 by analyzing the <strong>Sharpe Ratio</strong>, <strong>Profit Factor</strong>, and <strong>Win Rate</strong>, while heavily penalizing drawdowns and strategies that rely purely on expiry day spikes to cover normal day losses.
+                        Highest rated individual strategy. Scored by Sharpe Ratio, Profit Factor, Win Rate, and Drawdown penalty.
                     </p>
-                    
                     <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6 border-t border-dark-700/50 pt-6">
-                        <div>
-                            <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Score (/10)</p>
-                            <p class="text-2xl font-bold text-brand-primary">${m.score.toFixed(1)}</p>
-                        </div>
-                        <div>
-                            <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Profit Factor</p>
-                            <p class="text-2xl font-bold text-white">${m.profitFactor === 99 ? '∞' : m.profitFactor.toFixed(2)}</p>
-                        </div>
-                        <div>
-                            <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Avg Return</p>
-                            <p class="text-2xl font-bold text-white">${m.avg.toFixed(2)}%</p>
-                        </div>
-                        <div>
-                            <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Max Drawdown</p>
-                            <p class="text-2xl font-bold text-brand-danger">${m.maxDD.toFixed(2)}%</p>
-                        </div>
-                        <div>
-                            <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Win Rate</p>
-                            <p class="text-2xl font-bold text-white">${m.wr.toFixed(0)}%</p>
-                        </div>
+                        <div><p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Score (/10)</p><p class="text-2xl font-bold text-brand-primary">${m.score.toFixed(1)}</p></div>
+                        <div><p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Profit Factor</p><p class="text-2xl font-bold text-white">${m.profitFactor === 99 ? '∞' : m.profitFactor.toFixed(2)}</p></div>
+                        <div><p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Avg Return</p><p class="text-2xl font-bold text-white">${m.avg.toFixed(2)}%</p></div>
+                        <div><p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Max Drawdown</p><p class="text-2xl font-bold text-brand-danger">${m.maxDD.toFixed(2)}%</p></div>
+                        <div><p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Win Rate</p><p class="text-2xl font-bold text-white">${m.wr.toFixed(0)}%</p></div>
                     </div>
                 `;
-            } else if (maxDaysRecorded > 0) {
-                recContent.innerHTML = `
-                    <h2 class="text-2xl font-bold text-gray-300 mb-2">Analyzing Data...</h2>
-                    <p class="text-brand-warning text-sm mt-2 flex items-center gap-2">
-                        <i class="ph-bold ph-warning-circle"></i> AI Recommendation requires at least 7 days of data for statistical significance. Currently at ${maxDaysRecorded} days.
-                    </p>
-                `;
             } else {
-                recContent.innerHTML = `
-                    <h2 class="text-2xl font-bold text-gray-300 mb-2">Awaiting Data</h2>
-                    <p class="text-gray-500 text-sm">Please enter strategy returns in the Data Entry tab to generate recommendations.</p>
-                `;
+                recContent.innerHTML = `<h2 class="text-2xl font-bold text-gray-300 mb-2">Awaiting Data (Need 7+ days)</h2>`;
             }
 
-            renderCharts(allMetrics);
+            // 2. Best Combinations for Nifty & Sensex
+            ['Nifty', 'Sensex'].forEach(index => {
+                const bestCombo = findBestCombination(index);
+                const statsDiv = document.getElementById(`${index.toLowerCase()}-combo-stats`);
+                if (bestCombo) {
+                    statsDiv.innerHTML = `
+                        <div class="flex justify-between items-center bg-dark-900/50 p-3 rounded-lg border border-dark-700 mt-2">
+                            <div>
+                                <span class="block text-white font-semibold text-base">${bestCombo.strategies.join(' + ')}</span>
+                                <span class="text-xs text-gray-400">Score: <span class="text-brand-success font-bold">${bestCombo.score.toFixed(1)}</span> • PF: ${bestCombo.profitFactor.toFixed(2)} • DD: ${bestCombo.maxDD.toFixed(2)}%</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="block text-white font-bold">${bestCombo.totalRet.toFixed(2)}%</span>
+                                <span class="text-xs text-gray-400">Total Return</span>
+                            </div>
+                        </div>
+                    `;
+                    renderComboChart(`best${index}ComboChart`, index, bestCombo.strategies, bestCombo, `best${index}Combo`);
+                } else {
+                    statsDiv.innerHTML = `<p class="text-brand-warning">Need more data to form synergistic combinations.</p>`;
+                }
+            });
+
+            // 3. Initialize/Update Manual Combiner
+            if(combinerState.selectedStrategies.length === 0 && state.strategies.length >= 2) {
+                // Auto select first two by default
+                combinerState.selectedStrategies = [state.strategies[0], state.strategies[1]];
+            }
+            renderManualCombinerUI();
+
+            // 4. Base Charts
+            renderBaseCharts(allMetrics);
         }
 
-        function renderCharts(allMetrics) {
-            // Setup chart data structure
-            const createChartConfig = (indexStr) => {
-                let labels = ['Start']; // Starting point 0
-                // Find longest dataset for labels
-                let maxLen = 0;
-                state.strategies.forEach(s => {
-                    if (allMetrics[indexStr][s].returns.length > maxLen) maxLen = allMetrics[indexStr][s].returns.length;
-                });
-                for(let i=1; i<=maxLen; i++) labels.push(`T+${i}`);
+        function setCombinerIndex(index) {
+            combinerState.index = index;
+            document.getElementById('combiner-idx-nifty').className = index === 'Nifty' ? "w-1/2 py-2 text-sm font-medium rounded-md bg-dark-700 text-white shadow transition-all" : "w-1/2 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all";
+            document.getElementById('combiner-idx-sensex').className = index === 'Sensex' ? "w-1/2 py-2 text-sm font-medium rounded-md bg-dark-700 text-white shadow transition-all" : "w-1/2 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all";
+            renderManualCombinerUI();
+        }
 
-                let datasets = state.strategies.map((s, i) => {
-                    return {
-                        label: s,
-                        data: allMetrics[indexStr][s].eqCurve,
-                        borderColor: colors[i % colors.length],
-                        backgroundColor: colors[i % colors.length],
-                        borderWidth: 2,
-                        tension: 0.4, // Slightly smoother curves
-                        pointRadius: 0,
-                        pointHitRadius: 15, // Easier to hover over
-                        pointHoverRadius: 5
-                    }
-                });
+        function toggleCombinerStrategy(strategy) {
+            let idx = combinerState.selectedStrategies.indexOf(strategy);
+            if (idx > -1) {
+                combinerState.selectedStrategies.splice(idx, 1);
+            } else {
+                combinerState.selectedStrategies.push(strategy);
+            }
+            renderManualCombinerUI();
+        }
 
-                return {
-                    type: 'line',
-                    data: { labels, datasets },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        interaction: { mode: 'index', intersect: false },
-                        plugins: {
-                            legend: { 
-                                position: 'top',
-                                align: 'center',
-                                labels: { 
-                                    color: '#d1d5db', // Lighter text
-                                    usePointStyle: true, 
-                                    pointStyle: 'circle',
-                                    boxWidth: 8,
-                                    boxHeight: 8,
-                                    padding: 24, // Fixes the overlapping issue
-                                    font: {
-                                        family: "'Inter', sans-serif",
-                                        size: 13,
-                                        weight: '500'
-                                    }
-                                } 
-                            },
-                            tooltip: {
-                                backgroundColor: 'rgba(15, 17, 26, 0.95)',
-                                titleColor: '#ffffff',
-                                bodyColor: '#d1d5db',
-                                borderColor: '#262a40',
-                                borderWidth: 1,
-                                padding: 12,
-                                boxPadding: 6,
-                                usePointStyle: true,
-                                titleFont: { family: "'Inter', sans-serif", size: 13 },
-                                bodyFont: { family: "'Inter', sans-serif", size: 12 },
-                                callbacks: {
-                                    label: function(context) {
-                                        return ' ' + context.dataset.label + ': ' + context.parsed.y.toFixed(2) + '%';
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            x: { 
-                                grid: { color: 'rgba(38, 42, 64, 0.3)', drawBorder: false }, 
-                                ticks: { color: '#6b7280', font: { family: "'Inter', sans-serif" }, padding: 8 } 
-                            },
-                            y: { 
-                                border: { dash: [4, 4] },
-                                grid: { color: 'rgba(38, 42, 64, 0.3)', drawBorder: false, tickLength: 0 }, 
-                                ticks: { 
-                                    color: '#6b7280', 
-                                    font: { family: "'Inter', sans-serif" },
-                                    padding: 8,
-                                    callback: function(value) { return value + "%" } 
-                                } 
-                            }
-                        }
-                    }
-                };
-            };
+        function renderManualCombinerUI() {
+            // Render Checkboxes
+            const checkboxContainer = document.getElementById('combiner-checkboxes');
+            let checksHTML = '';
+            state.strategies.forEach((s, i) => {
+                const isChecked = combinerState.selectedStrategies.includes(s);
+                let sColor = colors[i % colors.length];
+                checksHTML += `
+                    <label class="flex items-center gap-3 p-3 rounded-lg bg-dark-800 border ${isChecked ? 'border-brand-primary' : 'border-dark-700'} hover:border-gray-500 cursor-pointer transition-all">
+                        <input type="checkbox" class="custom-checkbox" ${isChecked ? 'checked' : ''} onchange="toggleCombinerStrategy('${s}')">
+                        <span class="flex items-center gap-2 text-sm font-medium ${isChecked ? 'text-white' : 'text-gray-400'}">
+                            <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${sColor}"></span>
+                            ${s}
+                        </span>
+                    </label>
+                `;
+            });
+            checkboxContainer.innerHTML = checksHTML;
 
-            // Nifty Chart
-            if (charts.nifty) charts.nifty.destroy();
-            const ctxNifty = document.getElementById('niftyChart').getContext('2d');
-            charts.nifty = new Chart(ctxNifty, createChartConfig('Nifty'));
+            // Render Stats & Chart
+            const statsDiv = document.getElementById('manual-combiner-stats');
+            
+            if (combinerState.selectedStrategies.length === 0) {
+                statsDiv.innerHTML = `<p class="text-gray-500 text-sm italic text-center">Select at least one strategy to see combined metrics.</p>`;
+                if (charts.manualCombo) { charts.manualCombo.destroy(); charts.manualCombo = null; }
+                return;
+            }
 
-            // Sensex Chart
-            if (charts.sensex) charts.sensex.destroy();
-            const ctxSensex = document.getElementById('sensexChart').getContext('2d');
-            charts.sensex = new Chart(ctxSensex, createChartConfig('Sensex'));
+            const cMetrics = getCombinedMetrics(combinerState.selectedStrategies, combinerState.index);
+            
+            statsDiv.innerHTML = `
+                <div class="flex justify-between items-baseline mb-1">
+                    <span class="text-xs text-gray-400 uppercase">Combined Score</span>
+                    <span class="text-lg font-bold text-brand-primary">${cMetrics.score.toFixed(1)}/10</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-sm">
+                    <div><span class="text-gray-500">Total Return:</span> <span class="text-white font-medium float-right">${cMetrics.totalRet.toFixed(2)}%</span></div>
+                    <div><span class="text-gray-500">Max DD:</span> <span class="text-brand-danger font-medium float-right">${cMetrics.maxDD.toFixed(2)}%</span></div>
+                    <div><span class="text-gray-500">Win Rate:</span> <span class="text-white font-medium float-right">${cMetrics.wr.toFixed(0)}%</span></div>
+                    <div><span class="text-gray-500">Sharpe:</span> <span class="text-brand-success font-medium float-right">${cMetrics.sharpe.toFixed(2)}</span></div>
+                </div>
+                ${combinerState.selectedStrategies.length > 1 ? `<div class="mt-2 text-[10px] text-brand-warning text-center bg-brand-warning/10 p-1 rounded">Includes ${(0.02 * (combinerState.selectedStrategies.length-1)).toFixed(2)}% daily exec. drag</div>` : ''}
+            `;
+
+            renderComboChart('manualComboChart', combinerState.index, combinerState.selectedStrategies, cMetrics, 'manualCombo');
+        }
+
+        function switchTab(tabId) {
+            currentTab = tabId;
+            
+            document.getElementById('dashboard-view').classList.add('hidden');
+            document.getElementById('analysis-view').classList.add('hidden');
+            document.getElementById('data-view').classList.add('hidden');
+            
+            ['dashboard', 'analysis', 'data'].forEach(t => {
+                const el = document.getElementById(`nav-${t}`);
+                el.className = "flex items-center gap-3 w-full p-3 rounded-lg text-gray-400 hover:text-white hover:bg-dark-800 transition-all group";
+            });
+
+            document.getElementById(`${tabId}-view`).classList.remove('hidden');
+            document.getElementById(`nav-${tabId}`).className = "flex items-center gap-3 w-full p-3 rounded-lg text-brand-primary bg-brand-primary/10 transition-all hover:bg-brand-primary/20 group";
+
+            if (tabId === 'dashboard') renderDashboard();
+            if (tabId === 'analysis') renderAnalysis();
+            if (tabId === 'data') renderDataEntry();
+        }
+
+        function setAnalysisIndex(index) {
+            analysisIndex = index;
+            document.getElementById('btn-analyze-nifty').className = index === 'Nifty' ? "px-4 py-2 text-sm font-medium rounded-md bg-dark-700 text-white shadow transition-all" : "px-4 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all";
+            document.getElementById('btn-analyze-sensex').className = index === 'Sensex' ? "px-4 py-2 text-sm font-medium rounded-md bg-dark-700 text-white shadow transition-all" : "px-4 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all";
+            renderAnalysis();
         }
 
         function renderAnalysis() {
@@ -888,8 +970,7 @@
             const metrics = allMetrics[analysisIndex];
             const tbody = document.getElementById('analysis-table-body');
             
-            // Find best values for highlighting
-            let maxAvg = -Infinity, minStd = Infinity, minDD = Infinity, maxScore = -Infinity, maxPF = -Infinity, maxSharpe = -Infinity;
+            let maxAvg = -Infinity, minStd = Infinity, minDD = Infinity, maxScore = -Infinity, maxPF = -Infinity;
             state.strategies.forEach(s => {
                 const m = metrics[s];
                 if(m.returns.length > 0) {
@@ -898,7 +979,6 @@
                     if(m.maxDD < minDD) minDD = m.maxDD;
                     if(m.score > maxScore) maxScore = m.score;
                     if(m.profitFactor > maxPF && m.profitFactor !== 99) maxPF = m.profitFactor;
-                    if(m.sharpe > maxSharpe) maxSharpe = m.sharpe;
                 }
             });
 
@@ -907,52 +987,151 @@
                 const m = metrics[s];
                 if(m.returns.length === 0) return;
 
-                const cAvg = m.avg === maxAvg ? 'text-brand-success font-bold' : 'text-gray-300';
-                const cTotal = 'text-white font-medium';
-                const cWr = m.wr > 50 ? 'text-brand-success' : 'text-brand-danger';
-                const cStd = m.std === minStd ? 'text-brand-accent font-bold' : 'text-gray-300';
-                const cDd = m.maxDD === minDD ? 'text-brand-success font-bold' : 'text-brand-danger opacity-80';
                 const cScore = m.score === maxScore ? 'text-brand-primary font-bold text-lg' : 'text-gray-300';
-                const cPf = m.profitFactor >= maxPF && m.profitFactor > 1 ? 'text-brand-success font-medium' : 'text-gray-300';
-                const cSharpe = m.sharpe === maxSharpe && m.sharpe > 0 ? 'text-brand-success font-medium' : 'text-gray-300';
-                const pfText = m.profitFactor === 99 ? '∞' : m.profitFactor.toFixed(2);
                 
-                // Expiry Skew warning (if expiry avg is much higher than normal avg)
-                const isExpirySkewed = m.expiryCount > 0 && m.expiryAvg > (m.normalAvg * 1.5) && m.expiryAvg > 0;
-                const cExp = isExpirySkewed ? 'text-brand-warning font-semibold' : 'text-gray-400';
-
                 html += `
                 <tr class="group hover:bg-dark-800 transition-colors">
                     <td class="px-6 py-4 font-medium flex items-center gap-2 sticky left-0 bg-dark-900 group-hover:bg-dark-800 z-10 shadow-[4px_0_10px_rgba(0,0,0,0.3)] border-r border-dark-700 min-w-[200px]">
                         <span class="w-3 h-3 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.3)]" style="background-color: ${colors[i%colors.length]}"></span>
                         ${s}
                     </td>
-                    <td class="px-6 py-4 text-right ${cAvg}">${m.avg.toFixed(2)}%</td>
-                    <td class="px-6 py-4 text-right text-gray-300">${m.normalAvg.toFixed(2)}%</td>
-                    <td class="px-6 py-4 text-right ${cExp}" title="${m.expiryCount} Expiry days recorded">${m.expiryAvg.toFixed(2)}%</td>
-                    <td class="px-6 py-4 text-right ${cTotal}">${m.totalRet.toFixed(2)}%</td>
-                    <td class="px-6 py-4 text-right ${cWr}">${m.wr.toFixed(0)}%</td>
-                    <td class="px-6 py-4 text-right ${cPf}">${pfText}</td>
-                    <td class="px-6 py-4 text-right ${cSharpe}">${m.sharpe.toFixed(2)}</td>
-                    <td class="px-6 py-4 text-right ${cStd}">${m.std.toFixed(2)}</td>
-                    <td class="px-6 py-4 text-right ${cDd}">${m.maxDD.toFixed(2)}%</td>
+                    <td class="px-6 py-4 text-right">${m.avg.toFixed(2)}%</td>
+                    <td class="px-6 py-4 text-right">${m.normalAvg.toFixed(2)}%</td>
+                    <td class="px-6 py-4 text-right">${m.expiryAvg.toFixed(2)}%</td>
+                    <td class="px-6 py-4 text-right text-white font-medium">${m.totalRet.toFixed(2)}%</td>
+                    <td class="px-6 py-4 text-right ${m.wr > 50 ? 'text-brand-success' : 'text-brand-danger'}">${m.wr.toFixed(0)}%</td>
+                    <td class="px-6 py-4 text-right">${m.profitFactor === 99 ? '∞' : m.profitFactor.toFixed(2)}</td>
+                    <td class="px-6 py-4 text-right">${m.sharpe.toFixed(2)}</td>
+                    <td class="px-6 py-4 text-right">${m.std.toFixed(2)}</td>
+                    <td class="px-6 py-4 text-right ${m.maxDD === minDD ? 'text-brand-success font-bold' : 'text-brand-danger'}">${m.maxDD.toFixed(2)}%</td>
                     <td class="px-6 py-4 text-right ${cScore}">${m.score.toFixed(1)}</td>
                 </tr>
                 `;
             });
-
-            if(!html) {
-                html = `<tr><td colspan="9" class="text-center py-8 text-gray-500">No data available for ${analysisIndex}.</td></tr>`;
-            }
-
-            tbody.innerHTML = html;
+            tbody.innerHTML = html || `<tr><td colspan="11" class="text-center py-8 text-gray-500">No data available.</td></tr>`;
         }
 
-        // --- Bootstrapping ---
+        function renderDataEntry() {
+            const head = document.getElementById('data-table-head');
+            const tbody = document.getElementById('data-table-body');
+
+            let headHTML = `<tr>
+                <th class="px-4 py-3 sticky left-0 bg-dark-800 z-30 min-w-[140px] w-[140px]">Date</th>
+                <th class="px-4 py-3 sticky left-[140px] bg-dark-800 z-30 border-r border-dark-700 min-w-[120px] w-[120px] shadow-[4px_0_10px_rgba(0,0,0,0.3)]">Index</th>`;
+            state.strategies.forEach(s => { headHTML += `<th class="px-4 py-3 text-right min-w-[160px]"><div class="flex justify-end">${s}</div></th>`; });
+            headHTML += `</tr>`;
+            head.innerHTML = headHTML;
+
+            let bodyHTML = '';
+            [...state.dates].reverse().forEach(date => {
+                
+                ['Nifty', 'Sensex'].forEach((idxName, idx) => {
+                    let isExp = state.expiries[date]?.[idxName];
+                    let expClass = isExp 
+                        ? "bg-brand-warning/20 text-brand-warning border-brand-warning/50 shadow-[0_0_10px_rgba(245,158,11,0.25)]" 
+                        : "bg-dark-800 text-gray-600 border-dark-700 hover:text-gray-300 hover:border-dark-500";
+                    
+                    let rowClass = idx === 1 ? "border-b-[3px] border-dark-700" : "";
+                    let idxColor = idx === 0 ? "text-brand-accent" : "text-gray-400";
+
+                    bodyHTML += `<tr class="group hover:bg-dark-800 transition-colors ${rowClass}">
+                        <td class="px-4 py-3 whitespace-nowrap bg-dark-900 group-hover:bg-dark-800 border-r border-dark-700 sticky left-0 z-20 font-medium min-w-[140px] w-[140px]">
+                            ${idx === 0 ? `<div class="flex items-center justify-between">${date}<button onclick="deleteDate('${date}')" class="text-dark-600 hover:text-brand-danger"><i class="ph-bold ph-x"></i></button></div>` : ''}
+                        </td>
+                        <td class="px-4 py-3 ${idxColor} font-semibold bg-dark-900 group-hover:bg-dark-800 border-r border-dark-700 sticky left-[140px] z-20 min-w-[120px] w-[120px] shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
+                            <div class="flex items-center justify-between">
+                                <span>${idxName}</span>
+                                <button onclick="toggleExpiryUI(this, '${date}', '${idxName}')" class="text-[10px] font-bold px-2.5 py-1 rounded transition-all duration-300 border cursor-pointer uppercase ${expClass}">Exp</button>
+                            </div>
+                        </td>`;
+                    
+                    state.strategies.forEach(s => {
+                        let val = state.data[date]?.[idxName]?.[s] ?? '';
+                        let numVal = parseFloat(val);
+                        let colorClasses = '';
+                        if (!isNaN(numVal)) {
+                            if (numVal > 0) colorClasses = '!bg-brand-success/10 !border-brand-success/50 !text-brand-success';
+                            else if (numVal < 0) colorClasses = '!bg-brand-danger/10 !border-brand-danger/50 !text-brand-danger';
+                        }
+                        bodyHTML += `<td class="px-4 py-3"><input type="number" step="any" class="data-input transition-colors duration-300 ${colorClasses}" placeholder="0.00" value="${val}" oninput="updateInputColor(this)" onchange="updateData('${date}', '${idxName}', '${s}', this.value)"></td>`;
+                    });
+                    bodyHTML += `</tr>`;
+                });
+            });
+
+            tbody.innerHTML = bodyHTML || `<tr><td colspan="${state.strategies.length + 2}" class="text-center py-8 text-gray-500">No dates generated.</td></tr>`;
+        }
+
+        function promptAddStrategy() {
+            const name = prompt("Enter new strategy name:");
+            if (name && name.trim() && !state.strategies.includes(name.trim())) {
+                state.strategies.push(name.trim());
+                saveState();
+                renderDataEntry();
+            }
+        }
+
+        function addDateManually() {
+            const input = document.getElementById('manual-date-input').value;
+            if (!input) return;
+            let d = new Date(input);
+            let newDateStr = formatDate(d);
+            
+            if (!state.dates.includes(newDateStr)) {
+                state.dates.push(newDateStr);
+                state.dates.sort((a, b) => new Date(a) - new Date(b)); 
+                state.data[newDateStr] = { Nifty: {}, Sensex: {} };
+                state.expiries[newDateStr] = { Nifty: false, Sensex: false };
+                state.deletedDates = state.deletedDates.filter(x => x !== newDateStr);
+                saveState();
+                renderDataEntry();
+            }
+        }
+
+        function deleteDate(dateStr) {
+            state.dates = state.dates.filter(d => d !== dateStr);
+            if (!state.deletedDates.includes(dateStr)) state.deletedDates.push(dateStr); 
+            delete state.data[dateStr];
+            delete state.expiries[dateStr];
+            saveState();
+            renderDataEntry();
+        }
+
+        function updateData(date, index, strategy, value) {
+            if(!state.data[date]) state.data[date] = { Nifty: {}, Sensex: {} };
+            if(!state.data[date][index]) state.data[date][index] = {};
+            state.data[date][index][strategy] = value;
+            saveState();
+        }
+
+        function toggleExpiryUI(btnEl, date, index) {
+            let isActive = state.expiries[date]?.[index] || false;
+            let newState = !isActive;
+            
+            if(!state.expiries[date]) state.expiries[date] = { Nifty: false, Sensex: false };
+            state.expiries[date][index] = newState;
+            saveState();
+            
+            if (newState) {
+                btnEl.className = "text-[10px] font-bold px-2.5 py-1 rounded transition-all duration-300 border cursor-pointer uppercase bg-brand-warning/20 text-brand-warning border-brand-warning/50 shadow-[0_0_10px_rgba(245,158,11,0.25)]";
+            } else {
+                btnEl.className = "text-[10px] font-bold px-2.5 py-1 rounded transition-all duration-300 border cursor-pointer uppercase bg-dark-800 text-gray-600 border-dark-700 hover:text-gray-300 hover:border-dark-500";
+            }
+        }
+
+        function updateInputColor(inputEl) {
+            let val = parseFloat(inputEl.value);
+            inputEl.classList.remove('!bg-brand-success/10', '!border-brand-success/50', '!text-brand-success', '!bg-brand-danger/10', '!border-brand-danger/50', '!text-brand-danger');
+            if (!isNaN(val)) {
+                if (val > 0) inputEl.classList.add('!bg-brand-success/10', '!border-brand-success/50', '!text-brand-success');
+                else if (val < 0) inputEl.classList.add('!bg-brand-danger/10', '!border-brand-danger/50', '!text-brand-danger');
+            }
+        }
+
         function init() {
             loadState();
-            generateMissingDates(); // Will auto add up to tomorrow's date
-            switchTab('dashboard'); // Initial render
+            generateMissingDates();
+            switchTab('dashboard'); 
         }
 
         // Start App
