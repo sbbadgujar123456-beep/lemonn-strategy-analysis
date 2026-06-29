@@ -714,11 +714,27 @@
                     plugins: {
                         legend: { 
                             position: 'top',
-                            labels: { color: '#f9fafb', usePointStyle: true, boxWidth: 6, font: { family: "'Inter', sans-serif", size: 12, weight: '600'} } 
+                            labels: { 
+                                color: '#ffffff', 
+                                usePointStyle: true, 
+                                pointStyle: 'circle',
+                                boxWidth: 12, // Increased size
+                                boxHeight: 12,
+                                padding: 25, // Increased spacing
+                                font: { family: "'Inter', sans-serif", size: 14, weight: '600'} 
+                            } 
                         },
                         tooltip: {
-                            backgroundColor: 'rgba(30, 34, 52, 0.95)', titleColor: '#ffffff', bodyColor: '#ffffff',
-                            borderColor: '#4b5563', borderWidth: 1, padding: 12, usePointStyle: true,
+                            backgroundColor: 'rgba(15, 17, 26, 0.98)', 
+                            titleColor: '#ffffff', 
+                            bodyColor: '#ffffff',
+                            titleFont: { family: "'Inter', sans-serif", size: 14, weight: '700' },
+                            bodyFont: { family: "'Inter', sans-serif", size: 13, weight: '600' },
+                            borderColor: '#4b5563', 
+                            borderWidth: 1, 
+                            padding: 16, 
+                            bodySpacing: 10, // Increased spacing
+                            usePointStyle: true,
                             callbacks: {
                                 label: function(ctx) { return ' ' + ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(2) + '%'; }
                             }
@@ -729,7 +745,7 @@
                         y: { 
                             border: { dash: [4, 4] },
                             grid: { color: 'rgba(75, 85, 99, 0.2)' }, 
-                            ticks: { color: '#9ca3af', font: { family: "'Inter', sans-serif" }, callback: (v) => v + "%" } 
+                            ticks: { color: '#ffffff', font: { family: "'Inter', sans-serif", weight: '600' }, callback: (v) => v + "%" } 
                         }
                     }
                 }
@@ -761,11 +777,32 @@
                     options: {
                         responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
                         plugins: {
-                            legend: { labels: { color: '#f9fafb', usePointStyle: true, boxWidth: 8, font: { family: "'Inter', sans-serif", size: 13, weight: '600'} } }
+                            legend: { 
+                                labels: { 
+                                    color: '#ffffff', 
+                                    usePointStyle: true, 
+                                    pointStyle: 'circle',
+                                    boxWidth: 12, // Increased size
+                                    padding: 25, // Increased spacing
+                                    font: { family: "'Inter', sans-serif", size: 14, weight: '600'} 
+                                } 
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(15, 17, 26, 0.98)', 
+                                titleColor: '#ffffff', 
+                                bodyColor: '#ffffff',
+                                titleFont: { family: "'Inter', sans-serif", size: 14, weight: '700' },
+                                bodyFont: { family: "'Inter', sans-serif", size: 13, weight: '600' },
+                                borderColor: '#4b5563', 
+                                borderWidth: 1, 
+                                padding: 16, 
+                                bodySpacing: 10,
+                                usePointStyle: true
+                            }
                         },
                         scales: {
                             x: { grid: { display: false }, ticks: { display: false } },
-                            y: { border: { dash: [4, 4] }, grid: { color: 'rgba(75, 85, 99, 0.2)' }, ticks: { color: '#9ca3af', callback: (v) => v + "%" } }
+                            y: { border: { dash: [4, 4] }, grid: { color: 'rgba(75, 85, 99, 0.2)' }, ticks: { color: '#ffffff', font: { weight: '600' }, callback: (v) => v + "%" } }
                         }
                     }
                 };
