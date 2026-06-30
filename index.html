@@ -169,7 +169,7 @@
             
             <header>
                 <h1 class="text-3xl font-bold tracking-tight text-white">Strategy Overview</h1>
-                <p class="text-gray-400 mt-1">AI Recommendation</p>
+                <p class="text-gray-400 mt-1">AI Recommendation, Combinations & Equity Curves</p>
             </header>
 
             <!-- Recommendation Engine Box -->
@@ -224,9 +224,9 @@
             <!-- Manual Combiner Section -->
             <div class="glass p-6 rounded-2xl border border-dark-700">
                 <h3 class="text-xl font-bold mb-1 flex items-center gap-2 text-white">
-                    <i class="ph ph-sliders-horizontal text-brand-primary"></i> Strategy Combine
+                    <i class="ph ph-sliders-horizontal text-brand-primary"></i> Manual Combiner Studio
                 </h3>
-                <p class="text-sm text-gray-400 mb-6">Build your own portfolio. Combining strategies averages returns and hedges risk, but incurs multi-execution drag</p>
+                <p class="text-sm text-gray-400 mb-6">Build your own portfolio. Combining strategies averages returns and hedges risk, but incurs multi-execution drag (simulated 0.02% penalty per extra strategy).</p>
                 
                 <div class="flex flex-col lg:flex-row gap-8">
                     <!-- Controls -->
@@ -262,13 +262,13 @@
             <!-- Individual Charts Container -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div class="glass p-6 rounded-2xl">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-300">All Nifty Strategy</h3>
+                    <h3 class="text-lg font-semibold mb-4 text-gray-300">All Nifty Curves</h3>
                     <div class="h-[300px] w-full">
                         <canvas id="niftyChart"></canvas>
                     </div>
                 </div>
                 <div class="glass p-6 rounded-2xl">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-300">All Sensex Strategy</h3>
+                    <h3 class="text-lg font-semibold mb-4 text-gray-300">All Sensex Curves</h3>
                     <div class="h-[300px] w-full">
                         <canvas id="sensexChart"></canvas>
                     </div>
@@ -796,7 +796,7 @@
             strategiesList.forEach((s) => {
                 let sColor = colors[state.strategies.indexOf(s) % colors.length];
                 datasets.push({
-                    label: s + " ",
+                    label: s + " (Solo)",
                     data: allIndividualMetrics[index][s].eqCurve,
                     borderColor: sColor + '80', 
                     backgroundColor: 'transparent',
@@ -1061,7 +1061,9 @@
             const tbody = document.getElementById('data-table-body');
 
             let headHTML = `<tr><th class="px-4 py-3 sticky left-0 bg-dark-800 z-30 min-w-[140px] w-[140px]">Date</th><th class="px-4 py-3 sticky left-[140px] bg-dark-800 z-30 border-r border-dark-700 min-w-[120px] w-[120px] shadow-[4px_0_10px_rgba(0,0,0,0.3)]">Index</th>`;
-            state.strategies.forEach(s => { headHTML += `<th class="px-4 py-3 text-right min-w-[160px]"><div class="flex justify-end">${s}</div></th>`; });
+            state.strategies.forEach(s => { 
+                headHTML += `<th class="px-4 py-3 text-right min-w-[160px]"><div class="flex items-center justify-end gap-2"><span>${s}</span><button onclick="deleteStrategy('${s}')" class="text-gray-600 hover:text-brand-danger transition-colors" title="Delete Strategy"><i class="ph-bold ph-trash"></i></button></div></th>`; 
+            });
             headHTML += `</tr>`;
             head.innerHTML = headHTML;
 
@@ -1103,6 +1105,25 @@
             if (name && name.trim() && !state.strategies.includes(name.trim())) {
                 state.strategies.push(name.trim());
                 saveState(); renderDataEntry();
+            }
+        }
+
+        function deleteStrategy(strategyName) {
+            if (confirm(`Are you sure you want to delete the strategy "${strategyName}" and all of its data? This action cannot be undone.`)) {
+                // Remove from strategies array
+                state.strategies = state.strategies.filter(s => s !== strategyName);
+                
+                // Remove from manual combiner if currently selected
+                combinerState.selectedStrategies = combinerState.selectedStrategies.filter(s => s !== strategyName);
+                
+                // Delete historical data for the strategy
+                for (let date in state.data) {
+                    if (state.data[date].Nifty) delete state.data[date].Nifty[strategyName];
+                    if (state.data[date].Sensex) delete state.data[date].Sensex[strategyName];
+                }
+                
+                saveState();
+                renderDataEntry();
             }
         }
 
