@@ -659,26 +659,10 @@
 
         // --- Multi-Timeframe Returns Calculation ---
         function getReturnsByTimeframe(strategyOrStrategies, index, isCombined = false) {
-            const latestDateStr = state.dates[state.dates.length - 1];
-            if (!latestDateStr) return { '1M': 0, '3M': 0, '6M': 0, '1Y': 0, 'ALL': 0, 'MaxDD': 0 };
-
-            const latestDate = parseDate(latestDateStr);
-            const getTimeframeDate = (months) => {
-                let d = new Date(latestDate);
-                d.setMonth(d.getMonth() - months);
-                return d;
-            };
-
-            const thresholds = {
-                '1M': getTimeframeDate(1), '3M': getTimeframeDate(3),
-                '6M': getTimeframeDate(6), '1Y': getTimeframeDate(12)
-            };
-
-            let returnsData = { '1M': [], '3M': [], '6M': [], '1Y': [], 'ALL': [] };
             let allReturns = [];
 
+            // 1. Gather all recorded daily returns chronologically
             state.dates.forEach(dStr => {
-                const currentDate = parseDate(dStr);
                 let dailyRet = null;
 
                 if (isCombined) {
@@ -702,19 +686,41 @@
 
                 if (dailyRet !== null) {
                     allReturns.push(dailyRet);
-                    returnsData['ALL'].push(dailyRet);
-                    if (currentDate >= thresholds['1M']) returnsData['1M'].push(dailyRet);
-                    if (currentDate >= thresholds['3M']) returnsData['3M'].push(dailyRet);
-                    if (currentDate >= thresholds['6M']) returnsData['6M'].push(dailyRet);
-                    if (currentDate >= thresholds['1Y']) returnsData['1Y'].push(dailyRet);
                 }
             });
 
-            const calcRet = arr => arr.reduce((a, b) => a + b, 0);
+            if (allReturns.length === 0) {
+                return { '1M': 0, '3M': 0, '6M': 0, '1Y': 0, 'ALL': 0, 'MaxDD': 0 };
+            }
+
+            const calcSum = arr => arr.reduce((a, b) => a + b, 0);
+            const totalSum = calcSum(allReturns);
+            const avgDailyReturn = totalSum / allReturns.length;
+
+            // 2. Define standard Trading Days per timeframe
+            const days1M = 21;
+            const days3M = 63;
+            const days6M = 126;
+            const days1Y = 252;
+
+            // 3. Dynamic Calculation/Extrapolation Logic
+            const getPeriodReturn = (expectedDays) => {
+                if (allReturns.length >= expectedDays) {
+                    // Accurate Data Available: Sum the exact trailing N days
+                    return calcSum(allReturns.slice(-expectedDays));
+                } else {
+                    // Limited Data: Extrapolate/Project based on average past performance
+                    return avgDailyReturn * expectedDays;
+                }
+            };
+
             return {
-                '1M': calcRet(returnsData['1M']), '3M': calcRet(returnsData['3M']),
-                '6M': calcRet(returnsData['6M']), '1Y': calcRet(returnsData['1Y']),
-                'ALL': calcRet(returnsData['ALL']), 'MaxDD': MathUtils.maxDrawdown(MathUtils.equityCurve(allReturns))
+                '1M': getPeriodReturn(days1M),
+                '3M': getPeriodReturn(days3M),
+                '6M': getPeriodReturn(days6M),
+                '1Y': getPeriodReturn(days1Y),
+                'ALL': totalSum,
+                'MaxDD': MathUtils.maxDrawdown(MathUtils.equityCurve(allReturns))
             };
         }
 
