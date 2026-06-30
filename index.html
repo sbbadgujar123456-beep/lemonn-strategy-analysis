@@ -169,7 +169,7 @@
             
             <header>
                 <h1 class="text-3xl font-bold tracking-tight text-white">Strategy Overview</h1>
-                <p class="text-gray-400 mt-1">AI Recommendation, Combinations & Equity Curves</p>
+                <p class="text-gray-400 mt-1">AI Recommendation</p>
             </header>
 
             <!-- Recommendation Engine Box -->
@@ -224,9 +224,9 @@
             <!-- Manual Combiner Section -->
             <div class="glass p-6 rounded-2xl border border-dark-700">
                 <h3 class="text-xl font-bold mb-1 flex items-center gap-2 text-white">
-                    <i class="ph ph-sliders-horizontal text-brand-primary"></i> Manual Combiner Studio
+                    <i class="ph ph-sliders-horizontal text-brand-primary"></i> Strategy Combine
                 </h3>
-                <p class="text-sm text-gray-400 mb-6">Build your own portfolio. Combining strategies averages returns and hedges risk, but incurs multi-execution drag (simulated 0.02% penalty per extra strategy).</p>
+                <p class="text-sm text-gray-400 mb-6">Build your own portfolio. Combining strategies averages returns and hedges risk, but incurs multi-execution drag</p>
                 
                 <div class="flex flex-col lg:flex-row gap-8">
                     <!-- Controls -->
@@ -262,13 +262,13 @@
             <!-- Individual Charts Container -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div class="glass p-6 rounded-2xl">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-300">All Nifty Curves</h3>
+                    <h3 class="text-lg font-semibold mb-4 text-gray-300">All Nifty Strategy</h3>
                     <div class="h-[300px] w-full">
                         <canvas id="niftyChart"></canvas>
                     </div>
                 </div>
                 <div class="glass p-6 rounded-2xl">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-300">All Sensex Curves</h3>
+                    <h3 class="text-lg font-semibold mb-4 text-gray-300">All Sensex Strategy</h3>
                     <div class="h-[300px] w-full">
                         <canvas id="sensexChart"></canvas>
                     </div>
@@ -796,7 +796,7 @@
             strategiesList.forEach((s) => {
                 let sColor = colors[state.strategies.indexOf(s) % colors.length];
                 datasets.push({
-                    label: s + " (Solo)",
+                    label: s + " ",
                     data: allIndividualMetrics[index][s].eqCurve,
                     borderColor: sColor + '80', 
                     backgroundColor: 'transparent',
