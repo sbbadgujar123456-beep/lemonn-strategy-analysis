@@ -196,12 +196,15 @@
                 <!-- Nifty Combo -->
                 <div class="glass p-6 rounded-2xl border border-brand-success/20">
                     <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
-                        <span class="flex items-center gap-2"><i class="ph-fill ph-intersect text-brand-success"></i> Best Nifty Combination</span>
+                        <span class="flex items-center gap-2"><i class="ph-fill ph-intersect text-brand-success"></i> Best Nifty Combination (Max 3)</span>
                         <span class="text-xs bg-brand-success/10 text-brand-success px-2 py-1 rounded-md border border-brand-success/20">AI Generated</span>
                     </h3>
                     <div id="nifty-combo-stats" class="mb-4 text-sm text-gray-400 min-h-[40px]">Analyzing synergies...</div>
-                    <div class="h-[250px] w-full">
+                    <div class="h-[250px] w-full relative">
                         <canvas id="bestNiftyComboChart"></canvas>
+                        <div id="nifty-combo-fallback" class="absolute inset-0 flex items-center justify-center hidden">
+                            <!-- Fallback UI for no chart -->
+                        </div>
                     </div>
                     <!-- Table injects here -->
                     <div id="bestNiftyComboTable"></div>
@@ -209,12 +212,15 @@
                 <!-- Sensex Combo -->
                 <div class="glass p-6 rounded-2xl border border-brand-accent/20">
                     <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
-                        <span class="flex items-center gap-2"><i class="ph-fill ph-intersect text-brand-accent"></i> Best Sensex Combination</span>
+                        <span class="flex items-center gap-2"><i class="ph-fill ph-intersect text-brand-accent"></i> Best Sensex Combination (Max 3)</span>
                         <span class="text-xs bg-brand-accent/10 text-brand-accent px-2 py-1 rounded-md border border-brand-accent/20">AI Generated</span>
                     </h3>
                     <div id="sensex-combo-stats" class="mb-4 text-sm text-gray-400 min-h-[40px]">Analyzing synergies...</div>
-                    <div class="h-[250px] w-full">
+                    <div class="h-[250px] w-full relative">
                         <canvas id="bestSensexComboChart"></canvas>
+                        <div id="sensex-combo-fallback" class="absolute inset-0 flex items-center justify-center hidden">
+                            <!-- Fallback UI for no chart -->
+                        </div>
                     </div>
                     <!-- Table injects here -->
                     <div id="bestSensexComboTable"></div>
@@ -624,23 +630,29 @@
         }
 
         function findBestCombination(index) {
-            const allCombos = (function getCombos(arr, minLength) {
+            // Updated combinator: strict minLength=2, maxLength=3 to prevent over-diversification
+            const allCombos = (function getCombos(arr, minLength, maxLength) {
                 const res = [];
                 const f = (prefix, ar) => {
                     for (let i = 0; i < ar.length; i++) {
                         const newPref = [...prefix, ar[i]];
-                        if (newPref.length >= minLength) res.push(newPref);
-                        f(newPref, ar.slice(i + 1));
+                        if (newPref.length >= minLength && newPref.length <= maxLength) res.push(newPref);
+                        if (newPref.length < maxLength) f(newPref, ar.slice(i + 1));
                     }
                 }
                 f([], arr);
                 return res;
-            })(state.strategies, 2);
+            })(state.strategies, 2, 3);
 
             let bestCombo = null, highestScore = -Infinity;
             allCombos.forEach(combo => {
                 const metrics = getCombinedMetrics(combo, index);
-                if (metrics.returns.length >= 7 && metrics.score > highestScore) {
+                // Strict criteria for recommendation: positive returns, acceptable score, and reasonable drawdown limits
+                if (metrics.returns.length >= 7 && 
+                    metrics.totalRet > 0 && 
+                    metrics.score >= 4.0 && 
+                    metrics.maxDD <= 30 && 
+                    metrics.score > highestScore) {
                     highestScore = metrics.score;
                     bestCombo = metrics;
                 }
@@ -661,7 +673,7 @@
         function getReturnsByTimeframe(strategyOrStrategies, index, isCombined = false) {
             let allReturns = [];
 
-            // 1. Gather all recorded daily returns chronologically
+            // Gather all recorded daily returns chronologically
             state.dates.forEach(dStr => {
                 let dailyRet = null;
 
@@ -697,21 +709,11 @@
             const totalSum = calcSum(allReturns);
             const avgDailyReturn = totalSum / allReturns.length;
 
-            // 2. Define standard Trading Days per timeframe
-            const days1M = 21;
-            const days3M = 63;
-            const days6M = 126;
-            const days1Y = 252;
+            const days1M = 21, days3M = 63, days6M = 126, days1Y = 252;
 
-            // 3. Dynamic Calculation/Extrapolation Logic
             const getPeriodReturn = (expectedDays) => {
-                if (allReturns.length >= expectedDays) {
-                    // Accurate Data Available: Sum the exact trailing N days
-                    return calcSum(allReturns.slice(-expectedDays));
-                } else {
-                    // Limited Data: Extrapolate/Project based on average past performance
-                    return avgDailyReturn * expectedDays;
-                }
+                if (allReturns.length >= expectedDays) return calcSum(allReturns.slice(-expectedDays));
+                else return avgDailyReturn * expectedDays;
             };
 
             return {
@@ -837,9 +839,30 @@
                 }
             };
 
+            const canvas = document.getElementById(canvasId);
             if (charts[chartInstanceKey]) charts[chartInstanceKey].destroy();
-            const ctx = document.getElementById(canvasId).getContext('2d');
+            const ctx = canvas.getContext('2d');
             charts[chartInstanceKey] = new Chart(ctx, config);
+            
+            // Ensure fallback UI is hidden if chart renders
+            const fallbackId = canvasId.replace('Chart', '-fallback');
+            const fallbackEl = document.getElementById(fallbackId);
+            if(fallbackEl) fallbackEl.classList.add('hidden');
+        }
+
+        function clearComboChart(canvasId, chartInstanceKey) {
+            if (charts[chartInstanceKey]) {
+                charts[chartInstanceKey].destroy();
+                charts[chartInstanceKey] = null;
+            }
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Show fallback ui
+            const fallbackId = canvasId.replace('Chart', '-fallback');
+            const fallbackEl = document.getElementById(fallbackId);
+            if(fallbackEl) fallbackEl.classList.remove('hidden');
         }
 
         function renderBaseCharts(allMetrics) {
@@ -875,14 +898,19 @@
 
         function renderDashboard() {
             const allMetrics = getAllMetrics();
+            let maxDataPoints = 0;
             
-            // 1. Single Best Strategy
+            // 1. Single Best Strategy Evaluation
             let bestOverall = null, highestScore = -Infinity;
             ['Nifty', 'Sensex'].forEach(index => {
                 state.strategies.forEach(s => {
                     const m = allMetrics[index][s];
-                    if (m.returns.length >= 7 && m.score > highestScore) {
-                        highestScore = m.score; bestOverall = { strategy: s, index: index, metrics: m };
+                    if (m.returns.length > maxDataPoints) maxDataPoints = m.returns.length;
+
+                    // Strict requirement: Pos return, decent score (>=4.0), and maxDD <= 30%
+                    if (m.returns.length >= 7 && m.totalRet > 0 && m.score >= 4.0 && m.maxDD <= 30 && m.score > highestScore) {
+                        highestScore = m.score; 
+                        bestOverall = { strategy: s, index: index, metrics: m };
                     }
                 });
             });
@@ -895,7 +923,7 @@
                         ${bestOverall.strategy} <span class="text-brand-primary text-xl font-normal">on ${bestOverall.index}</span>
                         <span class="text-brand-success text-xs border border-brand-success px-2 py-0.5 rounded-full ml-2">${m.score.toFixed(1)}/10 Score</span>
                     </h2>
-                    <p class="text-gray-400 mb-6 max-w-2xl text-sm leading-relaxed">Highest rated individual strategy. Scored by Sharpe Ratio, Profit Factor, Win Rate, and Drawdown penalty.</p>
+                    <p class="text-gray-400 mb-6 max-w-2xl text-sm leading-relaxed">Highest rated individual strategy passing strict risk filters (Max DD < 30%, Total Return > 0%).</p>
                     <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6 border-t border-dark-700/50 pt-6">
                         <div><p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Score (/10)</p><p class="text-2xl font-bold text-brand-primary">${m.score.toFixed(1)}</p></div>
                         <div><p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Profit Factor</p><p class="text-2xl font-bold text-white">${m.profitFactor === 99 ? '∞' : m.profitFactor.toFixed(2)}</p></div>
@@ -904,7 +932,32 @@
                         <div><p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Win Rate</p><p class="text-2xl font-bold text-white">${m.wr.toFixed(0)}%</p></div>
                     </div>
                 `;
-            } else { recContent.innerHTML = `<h2 class="text-2xl font-bold text-gray-300 mb-2">Awaiting Data (Need 7+ days)</h2>`; }
+            } else if (maxDataPoints >= 7) {
+                // We have enough data, but no strategy met the strict "best of the best" criteria
+                recContent.innerHTML = `
+                    <div class="flex items-center gap-6 py-4 relative z-10">
+                        <div class="p-4 bg-brand-danger/10 rounded-2xl border border-brand-danger/30">
+                            <i class="ph-duotone ph-warning-circle text-5xl text-brand-danger"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-bold text-white mb-2">No strategy is good enough to follow right now</h2>
+                            <p class="text-gray-400 text-sm max-w-lg">All available strategies are currently exhibiting high drawdowns (>30%), negative overall returns, or poor risk-to-reward metrics. Capital preservation is recommended until conditions improve.</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                recContent.innerHTML = `
+                    <div class="flex items-center gap-6 py-4 relative z-10">
+                        <div class="p-4 bg-dark-700/50 rounded-2xl border border-dark-600">
+                            <i class="ph-duotone ph-hourglass-high text-5xl text-gray-400"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-bold text-white mb-2">Awaiting Data (Need 7+ days)</h2>
+                            <p class="text-gray-400 text-sm max-w-lg">Enter more daily returns in the Data Entry tab to unlock AI recommendations and combinations.</p>
+                        </div>
+                    </div>
+                `;
+            }
 
             // 2. Best Combinations for Nifty & Sensex
             ['Nifty', 'Sensex'].forEach(index => {
@@ -921,8 +974,16 @@
                     renderComboChart(`best${index}ComboChart`, index, bestCombo.strategies, bestCombo, `best${index}Combo`);
                     tableDiv.innerHTML = generateTableHTML(index, bestCombo.strategies);
                 } else {
-                    statsDiv.innerHTML = `<p class="text-brand-warning">Need more data to form synergistic combinations.</p>`;
+                    let indexMaxPts = 0;
+                    state.strategies.forEach(s => { if(allMetrics[index][s].returns.length > indexMaxPts) indexMaxPts = allMetrics[index][s].returns.length; });
+                    
+                    if (indexMaxPts >= 7) {
+                        statsDiv.innerHTML = `<div class="bg-brand-danger/10 text-brand-danger text-sm p-3 rounded-lg border border-brand-danger/20 flex items-center gap-2"><i class="ph-bold ph-x-circle text-lg"></i> No combination meets safe criteria (Max 30% DD, Positive Return).</div>`;
+                    } else {
+                        statsDiv.innerHTML = `<div class="bg-brand-warning/10 text-brand-warning text-sm p-3 rounded-lg border border-brand-warning/20 flex items-center gap-2"><i class="ph-bold ph-hourglass text-lg"></i> Need 7+ days of data to form combinations.</div>`;
+                    }
                     tableDiv.innerHTML = '';
+                    clearComboChart(`best${index}ComboChart`, `best${index}Combo`);
                 }
             });
 
@@ -1110,20 +1171,13 @@
 
         function deleteStrategy(strategyName) {
             if (confirm(`Are you sure you want to delete the strategy "${strategyName}" and all of its data? This action cannot be undone.`)) {
-                // Remove from strategies array
                 state.strategies = state.strategies.filter(s => s !== strategyName);
-                
-                // Remove from manual combiner if currently selected
                 combinerState.selectedStrategies = combinerState.selectedStrategies.filter(s => s !== strategyName);
-                
-                // Delete historical data for the strategy
                 for (let date in state.data) {
                     if (state.data[date].Nifty) delete state.data[date].Nifty[strategyName];
                     if (state.data[date].Sensex) delete state.data[date].Sensex[strategyName];
                 }
-                
-                saveState();
-                renderDataEntry();
+                saveState(); renderDataEntry();
             }
         }
 
