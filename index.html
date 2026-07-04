@@ -33,6 +33,7 @@
                             success: '#10b981',   // Green
                             danger: '#ef4444',    // Red
                             warning: '#f59e0b',   // Amber
+                            info: '#3b82f6'       // Blue for Banknifty
                         }
                     },
                     fontFamily: {
@@ -133,6 +134,25 @@
         .custom-checkbox:checked::before {
             transform: scale(1);
         }
+
+        /* Sorting Header Hover */
+        .sortable-header {
+            cursor: pointer;
+            transition: color 0.2s;
+            user-select: none;
+        }
+        .sortable-header:hover {
+            color: #ffffff;
+        }
+        .sort-icon {
+            display: inline-block;
+            opacity: 0.3;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+        .sort-icon.active {
+            opacity: 1;
+            color: #6366f1;
+        }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden antialiased selection:bg-brand-primary/30">
@@ -191,38 +211,44 @@
                 </div>
             </div>
 
-            <!-- Best Combinations Row -->
-            <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+            <!-- Best Combinations Row (Now 3 Columns for large screens) -->
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
                 <!-- Nifty Combo -->
                 <div class="glass p-6 rounded-2xl border border-brand-success/20">
                     <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
-                        <span class="flex items-center gap-2"><i class="ph-fill ph-intersect text-brand-success"></i> Best Nifty Combination (Max 3)</span>
-                        <span class="text-xs bg-brand-success/10 text-brand-success px-2 py-1 rounded-md border border-brand-success/20">AI Generated</span>
+                        <span class="flex items-center gap-2"><i class="ph-fill ph-intersect text-brand-success"></i> Nifty Combo (Max 3)</span>
                     </h3>
                     <div id="nifty-combo-stats" class="mb-4 text-sm text-gray-400 min-h-[40px]">Analyzing synergies...</div>
                     <div class="h-[250px] w-full relative">
                         <canvas id="bestNiftyComboChart"></canvas>
-                        <div id="nifty-combo-fallback" class="absolute inset-0 flex items-center justify-center hidden">
-                            <!-- Fallback UI for no chart -->
-                        </div>
+                        <div id="nifty-combo-fallback" class="absolute inset-0 flex items-center justify-center hidden"></div>
                     </div>
-                    <!-- Table injects here -->
                     <div id="bestNiftyComboTable"></div>
                 </div>
+                
+                <!-- Banknifty Combo -->
+                <div class="glass p-6 rounded-2xl border border-brand-info/20">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
+                        <span class="flex items-center gap-2"><i class="ph-fill ph-intersect text-brand-info"></i> Banknifty Combo (Max 3)</span>
+                    </h3>
+                    <div id="banknifty-combo-stats" class="mb-4 text-sm text-gray-400 min-h-[40px]">Analyzing synergies...</div>
+                    <div class="h-[250px] w-full relative">
+                        <canvas id="bestBankniftyComboChart"></canvas>
+                        <div id="banknifty-combo-fallback" class="absolute inset-0 flex items-center justify-center hidden"></div>
+                    </div>
+                    <div id="bestBankniftyComboTable"></div>
+                </div>
+
                 <!-- Sensex Combo -->
                 <div class="glass p-6 rounded-2xl border border-brand-accent/20">
                     <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
-                        <span class="flex items-center gap-2"><i class="ph-fill ph-intersect text-brand-accent"></i> Best Sensex Combination (Max 3)</span>
-                        <span class="text-xs bg-brand-accent/10 text-brand-accent px-2 py-1 rounded-md border border-brand-accent/20">AI Generated</span>
+                        <span class="flex items-center gap-2"><i class="ph-fill ph-intersect text-brand-accent"></i> Sensex Combo (Max 3)</span>
                     </h3>
                     <div id="sensex-combo-stats" class="mb-4 text-sm text-gray-400 min-h-[40px]">Analyzing synergies...</div>
                     <div class="h-[250px] w-full relative">
                         <canvas id="bestSensexComboChart"></canvas>
-                        <div id="sensex-combo-fallback" class="absolute inset-0 flex items-center justify-center hidden">
-                            <!-- Fallback UI for no chart -->
-                        </div>
+                        <div id="sensex-combo-fallback" class="absolute inset-0 flex items-center justify-center hidden"></div>
                     </div>
-                    <!-- Table injects here -->
                     <div id="bestSensexComboTable"></div>
                 </div>
             </div>
@@ -238,9 +264,10 @@
                     <!-- Controls -->
                     <div class="w-full lg:w-1/3 space-y-6">
                         <!-- Index Selection -->
-                        <div class="bg-dark-800 p-1 rounded-lg inline-flex w-full">
-                            <button onclick="setCombinerIndex('Nifty')" id="combiner-idx-nifty" class="w-1/2 py-2 text-sm font-medium rounded-md bg-dark-700 text-white shadow transition-all">Nifty</button>
-                            <button onclick="setCombinerIndex('Sensex')" id="combiner-idx-sensex" class="w-1/2 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all">Sensex</button>
+                        <div class="bg-dark-800 p-1 rounded-lg flex w-full gap-1">
+                            <button onclick="setCombinerIndex('Nifty')" id="combiner-idx-nifty" class="flex-1 py-2 text-sm font-medium rounded-md bg-dark-700 text-white shadow transition-all">Nifty</button>
+                            <button onclick="setCombinerIndex('Banknifty')" id="combiner-idx-banknifty" class="flex-1 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all">Banknifty</button>
+                            <button onclick="setCombinerIndex('Sensex')" id="combiner-idx-sensex" class="flex-1 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all">Sensex</button>
                         </div>
                         
                         <!-- Strategy Checkboxes -->
@@ -265,12 +292,18 @@
                 </div>
             </div>
 
-            <!-- Individual Charts Container -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Individual Charts Container (3 Columns) -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div class="glass p-6 rounded-2xl">
                     <h3 class="text-lg font-semibold mb-4 text-gray-300">All Nifty Curves</h3>
                     <div class="h-[300px] w-full">
                         <canvas id="niftyChart"></canvas>
+                    </div>
+                </div>
+                <div class="glass p-6 rounded-2xl">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-300">All Banknifty Curves</h3>
+                    <div class="h-[300px] w-full">
+                        <canvas id="bankniftyChart"></canvas>
                     </div>
                 </div>
                 <div class="glass p-6 rounded-2xl">
@@ -287,29 +320,81 @@
             <header class="flex justify-between items-end">
                 <div>
                     <h1 class="text-3xl font-bold tracking-tight text-white">Deep Analysis</h1>
-                    <p class="text-gray-400 mt-1">Detailed statistical breakdown of individual strategies</p>
+                    <p class="text-gray-400 mt-1">Filter, sort, and analyze strategies across indices</p>
                 </div>
-                <div class="glass p-1 rounded-lg inline-flex">
+                <div class="glass p-1 rounded-lg flex gap-1">
                     <button onclick="setAnalysisIndex('Nifty')" id="btn-analyze-nifty" class="px-4 py-2 text-sm font-medium rounded-md bg-dark-700 text-white shadow transition-all">Nifty</button>
+                    <button onclick="setAnalysisIndex('Banknifty')" id="btn-analyze-banknifty" class="px-4 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all">Banknifty</button>
                     <button onclick="setAnalysisIndex('Sensex')" id="btn-analyze-sensex" class="px-4 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all">Sensex</button>
                 </div>
             </header>
+
+            <!-- Filters Section -->
+            <div class="glass p-5 rounded-xl border border-dark-700 flex flex-wrap items-end gap-6">
+                <div>
+                    <label class="text-xs text-gray-400 mb-1 block">Min Avg Return (%)</label>
+                    <input type="number" id="filter-minAvg" placeholder="e.g. 0" class="data-input text-sm w-32 !text-left" oninput="updateAnalysisFilters()">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-400 mb-1 block">Min Win Rate (%)</label>
+                    <input type="number" id="filter-minWinRate" placeholder="e.g. 60" class="data-input text-sm w-32 !text-left" oninput="updateAnalysisFilters()">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-400 mb-1 block">Max Drawdown (%)</label>
+                    <input type="number" id="filter-maxDD" placeholder="e.g. 20" class="data-input text-sm w-32 !text-left" oninput="updateAnalysisFilters()">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-400 mb-1 block">Min Total Return (%)</label>
+                    <input type="number" id="filter-minTotal" placeholder="e.g. 5" class="data-input text-sm w-32 !text-left" oninput="updateAnalysisFilters()">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-400 mb-1 block">Min Score (/10)</label>
+                    <input type="number" step="0.1" id="filter-minScore" placeholder="e.g. 4.0" class="data-input text-sm w-32 !text-left" oninput="updateAnalysisFilters()">
+                </div>
+                <div class="ml-auto">
+                    <button onclick="clearAnalysisFilters()" class="text-sm text-gray-400 hover:text-brand-danger transition-colors flex items-center gap-1">
+                        <i class="ph-bold ph-x-circle"></i> Clear Filters
+                    </button>
+                </div>
+            </div>
 
             <div class="glass rounded-xl border border-dark-700 overflow-hidden overflow-x-auto relative shadow-2xl">
                 <table class="w-full text-sm text-left">
                     <thead class="text-xs text-gray-400 uppercase bg-dark-800 border-b border-dark-700">
                         <tr>
-                            <th class="px-6 py-4 sticky left-0 bg-dark-800 z-20 shadow-[4px_0_10px_rgba(0,0,0,0.3)] min-w-[200px]">Strategy</th>
-                            <th class="px-6 py-4 text-right" title="Overall Average">Avg Return</th>
-                            <th class="px-6 py-4 text-right" title="Average return on Non-Expiry days">Non-Exp Avg</th>
-                            <th class="px-6 py-4 text-right" title="Average return on Expiry days">Exp Avg</th>
-                            <th class="px-6 py-4 text-right">Total Return</th>
-                            <th class="px-6 py-4 text-right">Win Rate</th>
-                            <th class="px-6 py-4 text-right" title="Profit Factor (Gross Profit / Gross Loss)">Profit Factor</th>
-                            <th class="px-6 py-4 text-right" title="Sharpe Ratio (Avg Return / StdDev)">Sharpe</th>
-                            <th class="px-6 py-4 text-right" title="Standard Deviation">Volatility</th>
-                            <th class="px-6 py-4 text-right text-brand-danger">Max Drawdown</th>
-                            <th class="px-6 py-4 text-right text-brand-primary" title="Risk adjusted return score (out of 10)">Score (/10)</th>
+                            <th class="px-6 py-4 sticky left-0 bg-dark-800 z-20 shadow-[4px_0_10px_rgba(0,0,0,0.3)] min-w-[200px] sortable-header" onclick="setAnalysisSort('strategy')">
+                                Strategy <i class="ph-bold ph-caret-down sort-icon" id="sort-icon-strategy"></i>
+                            </th>
+                            <th class="px-6 py-4 text-right sortable-header" title="Overall Average" onclick="setAnalysisSort('avg')">
+                                Avg Return <i class="ph-bold ph-caret-down sort-icon" id="sort-icon-avg"></i>
+                            </th>
+                            <th class="px-6 py-4 text-right sortable-header" title="Average return on Non-Expiry days" onclick="setAnalysisSort('normalAvg')">
+                                Non-Exp Avg <i class="ph-bold ph-caret-down sort-icon" id="sort-icon-normalAvg"></i>
+                            </th>
+                            <th class="px-6 py-4 text-right sortable-header" title="Average return on Expiry days" onclick="setAnalysisSort('expiryAvg')">
+                                Exp Avg <i class="ph-bold ph-caret-down sort-icon" id="sort-icon-expiryAvg"></i>
+                            </th>
+                            <th class="px-6 py-4 text-right sortable-header" onclick="setAnalysisSort('totalRet')">
+                                Total Return <i class="ph-bold ph-caret-down sort-icon" id="sort-icon-totalRet"></i>
+                            </th>
+                            <th class="px-6 py-4 text-right sortable-header" onclick="setAnalysisSort('wr')">
+                                Win Rate <i class="ph-bold ph-caret-down sort-icon" id="sort-icon-wr"></i>
+                            </th>
+                            <th class="px-6 py-4 text-right sortable-header" title="Profit Factor (Gross Profit / Gross Loss)" onclick="setAnalysisSort('profitFactor')">
+                                Profit Factor <i class="ph-bold ph-caret-down sort-icon" id="sort-icon-profitFactor"></i>
+                            </th>
+                            <th class="px-6 py-4 text-right sortable-header" title="Sharpe Ratio (Avg Return / StdDev)" onclick="setAnalysisSort('sharpe')">
+                                Sharpe <i class="ph-bold ph-caret-down sort-icon" id="sort-icon-sharpe"></i>
+                            </th>
+                            <th class="px-6 py-4 text-right sortable-header" title="Standard Deviation" onclick="setAnalysisSort('std')">
+                                Volatility <i class="ph-bold ph-caret-down sort-icon" id="sort-icon-std"></i>
+                            </th>
+                            <th class="px-6 py-4 text-right text-brand-danger sortable-header" onclick="setAnalysisSort('maxDD')">
+                                Max Drawdown <i class="ph-bold ph-caret-down sort-icon" id="sort-icon-maxDD"></i>
+                            </th>
+                            <th class="px-6 py-4 text-right text-brand-primary sortable-header" title="Risk adjusted return score (out of 10)" onclick="setAnalysisSort('score')">
+                                Score (/10) <i class="ph-bold ph-caret-down sort-icon active" id="sort-icon-score"></i>
+                            </th>
                         </tr>
                     </thead>
                     <tbody id="analysis-table-body" class="divide-y divide-dark-700">
@@ -368,7 +453,8 @@
     <!-- JavaScript Logic -->
     <script>
         // --- Core State Management ---
-        const STORAGE_KEY = 'quant_dashboard_data_v3'; 
+        const STORAGE_KEY = 'quant_dashboard_data_v4'; // Bumped version for data structure update
+        const INDICES = ['Nifty', 'Banknifty', 'Sensex'];
         
         let state = {
             strategies: ['SwingKing Sniper', 'Booming Bulls', 'Bullseys', 'Aakash'],
@@ -390,13 +476,28 @@
         ];
 
         let currentTab = 'dashboard';
-        let analysisIndex = 'Nifty';
+        
+        // Analysis Tab State
+        let analysisState = {
+            index: 'Nifty',
+            sortCol: 'score',
+            sortDir: 'desc',
+            filters: {
+                minAvg: null,
+                minWinRate: null,
+                maxDD: null,
+                minTotal: null,
+                minScore: null
+            }
+        };
         
         // Chart instances
         let charts = { 
-            nifty: null, 
+            nifty: null,
+            banknifty: null,
             sensex: null,
             bestNiftyCombo: null,
+            bestBankniftyCombo: null,
             bestSensexCombo: null,
             manualCombo: null
         };
@@ -467,6 +568,12 @@
                     state.data = parsed.data || state.data;
                     state.deletedDates = parsed.deletedDates || [];
                     state.expiries = parsed.expiries || state.expiries;
+                    
+                    // Backward compatibility: Inject Banknifty into old data sets
+                    state.dates.forEach(d => {
+                        if (!state.data[d].Banknifty) state.data[d].Banknifty = {};
+                        if (state.expiries[d].Banknifty === undefined) state.expiries[d].Banknifty = false;
+                    });
                 } catch(e) {
                     console.error("Failed to parse local storage", e);
                 }
@@ -502,6 +609,11 @@
                     const importedState = JSON.parse(e.target.result);
                     if (importedState.strategies && importedState.data && importedState.dates) {
                         state = importedState;
+                        // Force migration on imported data
+                        state.dates.forEach(d => {
+                            if (!state.data[d].Banknifty) state.data[d].Banknifty = {};
+                            if (state.expiries[d].Banknifty === undefined) state.expiries[d].Banknifty = false;
+                        });
                         saveState();
                         alert("✅ Data imported successfully!");
                         location.reload(); 
@@ -538,8 +650,8 @@
             state.dates.sort((a, b) => new Date(a) - new Date(b));
 
             state.dates.forEach(date => {
-                if(!state.data[date]) state.data[date] = { Nifty: {}, Sensex: {} };
-                if(!state.expiries[date]) state.expiries[date] = { Nifty: false, Sensex: false };
+                if(!state.data[date]) state.data[date] = { Nifty: {}, Banknifty: {}, Sensex: {} };
+                if(!state.expiries[date]) state.expiries[date] = { Nifty: false, Banknifty: false, Sensex: false };
             });
             
             saveState();
@@ -630,7 +742,7 @@
         }
 
         function findBestCombination(index) {
-            // Updated combinator: strict minLength=2, maxLength=3 to prevent over-diversification
+            // Strict minLength=2, maxLength=3
             const allCombos = (function getCombos(arr, minLength, maxLength) {
                 const res = [];
                 const f = (prefix, ar) => {
@@ -647,7 +759,7 @@
             let bestCombo = null, highestScore = -Infinity;
             allCombos.forEach(combo => {
                 const metrics = getCombinedMetrics(combo, index);
-                // Strict criteria for recommendation: positive returns, acceptable score, and reasonable drawdown limits
+                // Strict criteria for recommendation: positive returns, acceptable score, reasonable DD
                 if (metrics.returns.length >= 7 && 
                     metrics.totalRet > 0 && 
                     metrics.score >= 4.0 && 
@@ -661,10 +773,12 @@
         }
 
         function getAllMetrics() {
-            let res = { Nifty: {}, Sensex: {} };
-            state.strategies.forEach(s => {
-                res.Nifty[s] = getStrategyMetrics(s, 'Nifty');
-                res.Sensex[s] = getStrategyMetrics(s, 'Sensex');
+            let res = {};
+            INDICES.forEach(idx => {
+                res[idx] = {};
+                state.strategies.forEach(s => {
+                    res[idx][s] = getStrategyMetrics(s, idx);
+                });
             });
             return res;
         }
@@ -673,7 +787,6 @@
         function getReturnsByTimeframe(strategyOrStrategies, index, isCombined = false) {
             let allReturns = [];
 
-            // Gather all recorded daily returns chronologically
             state.dates.forEach(dStr => {
                 let dailyRet = null;
 
@@ -844,7 +957,6 @@
             const ctx = canvas.getContext('2d');
             charts[chartInstanceKey] = new Chart(ctx, config);
             
-            // Ensure fallback UI is hidden if chart renders
             const fallbackId = canvasId.replace('Chart', '-fallback');
             const fallbackEl = document.getElementById(fallbackId);
             if(fallbackEl) fallbackEl.classList.add('hidden');
@@ -859,7 +971,6 @@
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Show fallback ui
             const fallbackId = canvasId.replace('Chart', '-fallback');
             const fallbackEl = document.getElementById(fallbackId);
             if(fallbackEl) fallbackEl.classList.remove('hidden');
@@ -890,10 +1001,13 @@
                     }
                 };
             };
-            if (charts.nifty) charts.nifty.destroy();
-            charts.nifty = new Chart(document.getElementById('niftyChart').getContext('2d'), createChartConfig('Nifty'));
-            if (charts.sensex) charts.sensex.destroy();
-            charts.sensex = new Chart(document.getElementById('sensexChart').getContext('2d'), createChartConfig('Sensex'));
+            
+            INDICES.forEach(idx => {
+                const chartKey = idx.toLowerCase();
+                const chartId = chartKey + 'Chart';
+                if (charts[chartKey]) charts[chartKey].destroy();
+                charts[chartKey] = new Chart(document.getElementById(chartId).getContext('2d'), createChartConfig(idx));
+            });
         }
 
         function renderDashboard() {
@@ -902,7 +1016,7 @@
             
             // 1. Single Best Strategy Evaluation
             let bestOverall = null, highestScore = -Infinity;
-            ['Nifty', 'Sensex'].forEach(index => {
+            INDICES.forEach(index => {
                 state.strategies.forEach(s => {
                     const m = allMetrics[index][s];
                     if (m.returns.length > maxDataPoints) maxDataPoints = m.returns.length;
@@ -933,7 +1047,6 @@
                     </div>
                 `;
             } else if (maxDataPoints >= 7) {
-                // We have enough data, but no strategy met the strict "best of the best" criteria
                 recContent.innerHTML = `
                     <div class="flex items-center gap-6 py-4 relative z-10">
                         <div class="p-4 bg-brand-danger/10 rounded-2xl border border-brand-danger/30">
@@ -959,8 +1072,8 @@
                 `;
             }
 
-            // 2. Best Combinations for Nifty & Sensex
-            ['Nifty', 'Sensex'].forEach(index => {
+            // 2. Best Combinations for all indices
+            INDICES.forEach(index => {
                 const bestCombo = findBestCombination(index);
                 const statsDiv = document.getElementById(`${index.toLowerCase()}-combo-stats`);
                 const tableDiv = document.getElementById(`best${index}ComboTable`);
@@ -980,7 +1093,7 @@
                     if (indexMaxPts >= 7) {
                         statsDiv.innerHTML = `<div class="bg-brand-danger/10 text-brand-danger text-sm p-3 rounded-lg border border-brand-danger/20 flex items-center gap-2"><i class="ph-bold ph-x-circle text-lg"></i> No combination meets safe criteria (Max 30% DD, Positive Return).</div>`;
                     } else {
-                        statsDiv.innerHTML = `<div class="bg-brand-warning/10 text-brand-warning text-sm p-3 rounded-lg border border-brand-warning/20 flex items-center gap-2"><i class="ph-bold ph-hourglass text-lg"></i> Need 7+ days of data to form combinations.</div>`;
+                        statsDiv.innerHTML = `<div class="bg-brand-warning/10 text-brand-warning text-sm p-3 rounded-lg border border-brand-warning/20 flex items-center gap-2"><i class="ph-bold ph-hourglass text-lg"></i> Need 7+ days of data.</div>`;
                     }
                     tableDiv.innerHTML = '';
                     clearComboChart(`best${index}ComboChart`, `best${index}Combo`);
@@ -999,8 +1112,15 @@
 
         function setCombinerIndex(index) {
             combinerState.index = index;
-            document.getElementById('combiner-idx-nifty').className = index === 'Nifty' ? "w-1/2 py-2 text-sm font-medium rounded-md bg-dark-700 text-white shadow transition-all" : "w-1/2 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all";
-            document.getElementById('combiner-idx-sensex').className = index === 'Sensex' ? "w-1/2 py-2 text-sm font-medium rounded-md bg-dark-700 text-white shadow transition-all" : "w-1/2 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all";
+            INDICES.forEach(idx => {
+                const idStr = `combiner-idx-${idx.toLowerCase()}`;
+                const btn = document.getElementById(idStr);
+                if(btn) {
+                    btn.className = index === idx 
+                        ? "flex-1 py-2 text-sm font-medium rounded-md bg-dark-700 text-white shadow transition-all" 
+                        : "flex-1 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all";
+                }
+            });
             renderManualCombinerUI();
         }
 
@@ -1069,38 +1189,130 @@
             if (tabId === 'data') renderDataEntry();
         }
 
+        // --- Analysis View Logic (Filters & Sorting) ---
         function setAnalysisIndex(index) {
-            analysisIndex = index;
-            document.getElementById('btn-analyze-nifty').className = index === 'Nifty' ? "px-4 py-2 text-sm font-medium rounded-md bg-dark-700 text-white shadow transition-all" : "px-4 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all";
-            document.getElementById('btn-analyze-sensex').className = index === 'Sensex' ? "px-4 py-2 text-sm font-medium rounded-md bg-dark-700 text-white shadow transition-all" : "px-4 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all";
+            analysisState.index = index;
+            INDICES.forEach(idx => {
+                const idStr = `btn-analyze-${idx.toLowerCase()}`;
+                const btn = document.getElementById(idStr);
+                if(btn) {
+                    btn.className = index === idx 
+                        ? "px-4 py-2 text-sm font-medium rounded-md bg-dark-700 text-white shadow transition-all" 
+                        : "px-4 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all";
+                }
+            });
             renderAnalysis();
+        }
+
+        function updateAnalysisFilters() {
+            const parseVal = (id) => {
+                let val = document.getElementById(id).value;
+                return val === '' ? null : parseFloat(val);
+            };
+            analysisState.filters.minAvg = parseVal('filter-minAvg');
+            analysisState.filters.minWinRate = parseVal('filter-minWinRate');
+            analysisState.filters.maxDD = parseVal('filter-maxDD');
+            analysisState.filters.minTotal = parseVal('filter-minTotal');
+            analysisState.filters.minScore = parseVal('filter-minScore');
+            
+            renderAnalysis();
+        }
+
+        function clearAnalysisFilters() {
+            document.getElementById('filter-minAvg').value = '';
+            document.getElementById('filter-minWinRate').value = '';
+            document.getElementById('filter-maxDD').value = '';
+            document.getElementById('filter-minTotal').value = '';
+            document.getElementById('filter-minScore').value = '';
+            updateAnalysisFilters();
+        }
+
+        function setAnalysisSort(colName) {
+            if (analysisState.sortCol === colName) {
+                analysisState.sortDir = analysisState.sortDir === 'desc' ? 'asc' : 'desc';
+            } else {
+                analysisState.sortCol = colName;
+                analysisState.sortDir = 'desc'; // Default to desc on new column
+            }
+            renderAnalysis();
+        }
+
+        function updateSortIcons() {
+            document.querySelectorAll('.sort-icon').forEach(icon => {
+                icon.classList.remove('active', 'ph-caret-down', 'ph-caret-up');
+                icon.classList.add('ph-caret-down'); // default inactive
+            });
+            
+            const activeIcon = document.getElementById(`sort-icon-${analysisState.sortCol}`);
+            if (activeIcon) {
+                activeIcon.classList.add('active');
+                activeIcon.classList.remove('ph-caret-down');
+                activeIcon.classList.add(analysisState.sortDir === 'desc' ? 'ph-caret-down' : 'ph-caret-up');
+            }
         }
 
         function renderAnalysis() {
             const allMetrics = getAllMetrics();
-            const metrics = allMetrics[analysisIndex];
+            const metrics = allMetrics[analysisState.index];
             const tbody = document.getElementById('analysis-table-body');
             
-            let maxAvg = -Infinity, minStd = Infinity, minDD = Infinity, maxScore = -Infinity, maxPF = -Infinity;
-            state.strategies.forEach(s => {
+            // 1. Gather all strategy data into an array for filtering & sorting
+            let tableData = [];
+            state.strategies.forEach((s, i) => {
                 const m = metrics[s];
                 if(m.returns.length > 0) {
-                    if(m.avg > maxAvg) maxAvg = m.avg; if(m.std < minStd) minStd = m.std;
-                    if(m.maxDD < minDD) minDD = m.maxDD; if(m.score > maxScore) maxScore = m.score;
-                    if(m.profitFactor > maxPF && m.profitFactor !== 99) maxPF = m.profitFactor;
+                    tableData.push({ strategy: s, originalIndex: i, ...m });
                 }
             });
 
+            // 2. Apply Filters
+            const { minAvg, minWinRate, maxDD, minTotal, minScore } = analysisState.filters;
+            
+            tableData = tableData.filter(d => {
+                if (minAvg !== null && d.avg < minAvg) return false;
+                if (minWinRate !== null && d.wr < minWinRate) return false;
+                if (maxDD !== null && d.maxDD > maxDD) return false;
+                if (minTotal !== null && d.totalRet < minTotal) return false;
+                if (minScore !== null && d.score < minScore) return false;
+                return true;
+            });
+
+            // 3. Apply Sorting
+            tableData.sort((a, b) => {
+                let valA = a[analysisState.sortCol];
+                let valB = b[analysisState.sortCol];
+
+                if (analysisState.sortCol === 'strategy') {
+                    // String comparison for strategy name
+                    let comp = valA.localeCompare(valB);
+                    return analysisState.sortDir === 'asc' ? comp : -comp;
+                } else {
+                    // Numeric comparison
+                    if (valA < valB) return analysisState.sortDir === 'asc' ? -1 : 1;
+                    if (valA > valB) return analysisState.sortDir === 'asc' ? 1 : -1;
+                    return 0;
+                }
+            });
+
+            // Find min/max for highlighting within the FILTERED set
+            let maxAvg = -Infinity, minStd = Infinity, minDD = Infinity, maxScore = -Infinity;
+            tableData.forEach(d => {
+                if(d.avg > maxAvg) maxAvg = d.avg; 
+                if(d.std < minStd) minStd = d.std;
+                if(d.maxDD < minDD) minDD = d.maxDD; 
+                if(d.score > maxScore) maxScore = d.score;
+            });
+
+            // 4. Generate HTML
             let html = '';
-            state.strategies.forEach((s, i) => {
-                const m = metrics[s];
-                if(m.returns.length === 0) return;
+            tableData.forEach((m) => {
+                const s = m.strategy;
                 const cScore = m.score === maxScore ? 'text-brand-primary font-bold text-lg' : 'text-gray-300';
                 
                 html += `
                 <tr class="group hover:bg-dark-800 transition-colors">
                     <td class="px-6 py-4 font-medium flex items-center gap-2 sticky left-0 bg-dark-900 group-hover:bg-dark-800 z-10 shadow-[4px_0_10px_rgba(0,0,0,0.3)] border-r border-dark-700 min-w-[200px]">
-                        <span class="w-3 h-3 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.3)]" style="background-color: ${colors[i%colors.length]}"></span>${s}
+                        <span class="w-3 h-3 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.3)]" style="background-color: ${colors[m.originalIndex % colors.length]}"></span>${s}
                     </td>
                     <td class="px-6 py-4 text-right">${m.avg.toFixed(2)}%</td>
                     <td class="px-6 py-4 text-right">${m.normalAvg.toFixed(2)}%</td>
@@ -1114,9 +1326,13 @@
                     <td class="px-6 py-4 text-right ${cScore}">${m.score.toFixed(1)}</td>
                 </tr>`;
             });
-            tbody.innerHTML = html || `<tr><td colspan="11" class="text-center py-8 text-gray-500">No data available.</td></tr>`;
+            
+            tbody.innerHTML = html || `<tr><td colspan="11" class="text-center py-8 text-gray-500">No matching strategies found.</td></tr>`;
+            
+            updateSortIcons();
         }
 
+        // --- Data Entry View ---
         function renderDataEntry() {
             const head = document.getElementById('data-table-head');
             const tbody = document.getElementById('data-table-body');
@@ -1130,11 +1346,14 @@
 
             let bodyHTML = '';
             [...state.dates].reverse().forEach(date => {
-                ['Nifty', 'Sensex'].forEach((idxName, idx) => {
+                INDICES.forEach((idxName, idx) => {
                     let isExp = state.expiries[date]?.[idxName];
                     let expClass = isExp ? "bg-brand-warning/20 text-brand-warning border-brand-warning/50 shadow-[0_0_10px_rgba(245,158,11,0.25)]" : "bg-dark-800 text-gray-600 border-dark-700 hover:text-gray-300 hover:border-dark-500";
-                    let rowClass = idx === 1 ? "border-b-[3px] border-dark-700" : "";
-                    let idxColor = idx === 0 ? "text-brand-accent" : "text-gray-400";
+                    let rowClass = idx === (INDICES.length - 1) ? "border-b-[3px] border-dark-700" : "";
+                    
+                    let idxColor = "text-gray-400";
+                    if(idxName === 'Nifty') idxColor = "text-brand-accent";
+                    if(idxName === 'Banknifty') idxColor = "text-brand-info";
 
                     bodyHTML += `<tr class="group hover:bg-dark-800 transition-colors ${rowClass}">
                         <td class="px-4 py-3 whitespace-nowrap bg-dark-900 group-hover:bg-dark-800 border-r border-dark-700 sticky left-0 z-20 font-medium min-w-[140px] w-[140px]">
@@ -1174,8 +1393,9 @@
                 state.strategies = state.strategies.filter(s => s !== strategyName);
                 combinerState.selectedStrategies = combinerState.selectedStrategies.filter(s => s !== strategyName);
                 for (let date in state.data) {
-                    if (state.data[date].Nifty) delete state.data[date].Nifty[strategyName];
-                    if (state.data[date].Sensex) delete state.data[date].Sensex[strategyName];
+                    INDICES.forEach(idx => {
+                        if (state.data[date][idx]) delete state.data[date][idx][strategyName];
+                    });
                 }
                 saveState(); renderDataEntry();
             }
@@ -1190,8 +1410,14 @@
             if (!state.dates.includes(newDateStr)) {
                 state.dates.push(newDateStr);
                 state.dates.sort((a, b) => new Date(a) - new Date(b)); 
-                state.data[newDateStr] = { Nifty: {}, Sensex: {} };
-                state.expiries[newDateStr] = { Nifty: false, Sensex: false };
+                
+                state.data[newDateStr] = {};
+                state.expiries[newDateStr] = {};
+                INDICES.forEach(idx => {
+                    state.data[newDateStr][idx] = {};
+                    state.expiries[newDateStr][idx] = false;
+                });
+                
                 state.deletedDates = state.deletedDates.filter(x => x !== newDateStr);
                 saveState(); renderDataEntry();
             }
@@ -1205,7 +1431,7 @@
         }
 
         function updateData(date, index, strategy, value) {
-            if(!state.data[date]) state.data[date] = { Nifty: {}, Sensex: {} };
+            if(!state.data[date]) state.data[date] = {};
             if(!state.data[date][index]) state.data[date][index] = {};
             state.data[date][index][strategy] = value;
             saveState();
@@ -1215,7 +1441,7 @@
             let isActive = state.expiries[date]?.[index] || false;
             let newState = !isActive;
             
-            if(!state.expiries[date]) state.expiries[date] = { Nifty: false, Sensex: false };
+            if(!state.expiries[date]) state.expiries[date] = {};
             state.expiries[date][index] = newState;
             saveState();
             
