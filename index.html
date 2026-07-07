@@ -62,20 +62,22 @@
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        /* Custom Scrollbar */
+        /* Custom Scrollbar - Updated for Better Horizontal Scrolling */
         ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
+            width: 10px;
+            height: 14px; /* Thicker for easier horizontal dragging */
         }
         ::-webkit-scrollbar-track {
             background: #0f111a; 
+            border-radius: 8px;
         }
         ::-webkit-scrollbar-thumb {
             background: #262a40; 
-            border-radius: 4px;
+            border-radius: 8px;
+            border: 3px solid #0f111a; /* Creates a nice padding effect */
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: #4b5563; 
+            background: #6366f1; 
         }
 
         /* Data Input Styling */
@@ -211,7 +213,7 @@
                 </div>
             </div>
 
-            <!-- Best Combinations Row (Now 3 Columns for large screens) -->
+            <!-- Best Combinations Row (3 Columns) -->
             <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
                 <!-- Nifty Combo -->
                 <div class="glass p-6 rounded-2xl border border-brand-success/20">
@@ -226,19 +228,6 @@
                     <div id="bestNiftyComboTable"></div>
                 </div>
                 
-                <!-- Banknifty Combo -->
-                <div class="glass p-6 rounded-2xl border border-brand-info/20">
-                    <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
-                        <span class="flex items-center gap-2"><i class="ph-fill ph-intersect text-brand-info"></i> Banknifty Combo (Max 3)</span>
-                    </h3>
-                    <div id="banknifty-combo-stats" class="mb-4 text-sm text-gray-400 min-h-[40px]">Analyzing synergies...</div>
-                    <div class="h-[250px] w-full relative">
-                        <canvas id="bestBankniftyComboChart"></canvas>
-                        <div id="banknifty-combo-fallback" class="absolute inset-0 flex items-center justify-center hidden"></div>
-                    </div>
-                    <div id="bestBankniftyComboTable"></div>
-                </div>
-
                 <!-- Sensex Combo -->
                 <div class="glass p-6 rounded-2xl border border-brand-accent/20">
                     <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
@@ -250,6 +239,19 @@
                         <div id="sensex-combo-fallback" class="absolute inset-0 flex items-center justify-center hidden"></div>
                     </div>
                     <div id="bestSensexComboTable"></div>
+                </div>
+
+                <!-- Banknifty Combo -->
+                <div class="glass p-6 rounded-2xl border border-brand-info/20">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
+                        <span class="flex items-center gap-2"><i class="ph-fill ph-intersect text-brand-info"></i> Banknifty Combo (Max 3)</span>
+                    </h3>
+                    <div id="banknifty-combo-stats" class="mb-4 text-sm text-gray-400 min-h-[40px]">Analyzing synergies...</div>
+                    <div class="h-[250px] w-full relative">
+                        <canvas id="bestBankniftyComboChart"></canvas>
+                        <div id="banknifty-combo-fallback" class="absolute inset-0 flex items-center justify-center hidden"></div>
+                    </div>
+                    <div id="bestBankniftyComboTable"></div>
                 </div>
             </div>
 
@@ -266,8 +268,8 @@
                         <!-- Index Selection -->
                         <div class="bg-dark-800 p-1 rounded-lg flex w-full gap-1">
                             <button onclick="setCombinerIndex('Nifty')" id="combiner-idx-nifty" class="flex-1 py-2 text-sm font-medium rounded-md bg-dark-700 text-white shadow transition-all">Nifty</button>
-                            <button onclick="setCombinerIndex('Banknifty')" id="combiner-idx-banknifty" class="flex-1 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all">Banknifty</button>
                             <button onclick="setCombinerIndex('Sensex')" id="combiner-idx-sensex" class="flex-1 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all">Sensex</button>
+                            <button onclick="setCombinerIndex('Banknifty')" id="combiner-idx-banknifty" class="flex-1 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all">Banknifty</button>
                         </div>
                         
                         <!-- Strategy Checkboxes -->
@@ -301,15 +303,15 @@
                     </div>
                 </div>
                 <div class="glass p-6 rounded-2xl">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-300">All Banknifty Curves</h3>
-                    <div class="h-[300px] w-full">
-                        <canvas id="bankniftyChart"></canvas>
-                    </div>
-                </div>
-                <div class="glass p-6 rounded-2xl">
                     <h3 class="text-lg font-semibold mb-4 text-gray-300">All Sensex Curves</h3>
                     <div class="h-[300px] w-full">
                         <canvas id="sensexChart"></canvas>
+                    </div>
+                </div>
+                <div class="glass p-6 rounded-2xl">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-300">All Banknifty Curves</h3>
+                    <div class="h-[300px] w-full">
+                        <canvas id="bankniftyChart"></canvas>
                     </div>
                 </div>
             </div>
@@ -324,8 +326,8 @@
                 </div>
                 <div class="glass p-1 rounded-lg flex gap-1">
                     <button onclick="setAnalysisIndex('Nifty')" id="btn-analyze-nifty" class="px-4 py-2 text-sm font-medium rounded-md bg-dark-700 text-white shadow transition-all">Nifty</button>
-                    <button onclick="setAnalysisIndex('Banknifty')" id="btn-analyze-banknifty" class="px-4 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all">Banknifty</button>
                     <button onclick="setAnalysisIndex('Sensex')" id="btn-analyze-sensex" class="px-4 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all">Sensex</button>
+                    <button onclick="setAnalysisIndex('Banknifty')" id="btn-analyze-banknifty" class="px-4 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all">Banknifty</button>
                 </div>
             </header>
 
@@ -436,7 +438,7 @@
                 </div>
             </header>
 
-            <div class="glass rounded-xl border border-dark-700 overflow-hidden overflow-x-auto shadow-2xl relative">
+            <div class="glass rounded-xl border border-dark-700 overflow-hidden overflow-x-auto shadow-2xl relative pb-2 data-table-container">
                 <table class="w-full text-sm text-left">
                     <thead class="text-xs text-gray-400 uppercase bg-dark-800 border-b border-dark-700" id="data-table-head">
                         <!-- Dynamically built header -->
@@ -454,7 +456,7 @@
     <script>
         // --- Core State Management ---
         const STORAGE_KEY = 'quant_dashboard_data_v4'; // Bumped version for data structure update
-        const INDICES = ['Nifty', 'Banknifty', 'Sensex'];
+        const INDICES = ['Nifty', 'Sensex', 'Banknifty']; // Updated Order
         
         let state = {
             strategies: ['SwingKing Sniper', 'Booming Bulls', 'Bullseys', 'Aakash'],
@@ -569,10 +571,13 @@
                     state.deletedDates = parsed.deletedDates || [];
                     state.expiries = parsed.expiries || state.expiries;
                     
-                    // Backward compatibility: Inject Banknifty into old data sets
+                    // Backward compatibility: Inject Banknifty and Sensex into old data sets
                     state.dates.forEach(d => {
                         if (!state.data[d].Banknifty) state.data[d].Banknifty = {};
                         if (state.expiries[d].Banknifty === undefined) state.expiries[d].Banknifty = false;
+                        
+                        if (!state.data[d].Sensex) state.data[d].Sensex = {};
+                        if (state.expiries[d].Sensex === undefined) state.expiries[d].Sensex = false;
                     });
                 } catch(e) {
                     console.error("Failed to parse local storage", e);
@@ -609,10 +614,13 @@
                     const importedState = JSON.parse(e.target.result);
                     if (importedState.strategies && importedState.data && importedState.dates) {
                         state = importedState;
-                        // Force migration on imported data
+                        // Force migration on imported data for all indices
                         state.dates.forEach(d => {
                             if (!state.data[d].Banknifty) state.data[d].Banknifty = {};
                             if (state.expiries[d].Banknifty === undefined) state.expiries[d].Banknifty = false;
+                            
+                            if (!state.data[d].Sensex) state.data[d].Sensex = {};
+                            if (state.expiries[d].Sensex === undefined) state.expiries[d].Sensex = false;
                         });
                         saveState();
                         alert("✅ Data imported successfully!");
@@ -1345,6 +1353,8 @@
             head.innerHTML = headHTML;
 
             let bodyHTML = '';
+            let dateIndex = 0; // Needed for tabindex calculations
+
             [...state.dates].reverse().forEach(date => {
                 INDICES.forEach((idxName, idx) => {
                     let isExp = state.expiries[date]?.[idxName];
@@ -1352,8 +1362,9 @@
                     let rowClass = idx === (INDICES.length - 1) ? "border-b-[3px] border-dark-700" : "";
                     
                     let idxColor = "text-gray-400";
-                    if(idxName === 'Nifty') idxColor = "text-brand-accent";
-                    if(idxName === 'Banknifty') idxColor = "text-brand-info";
+                    if(idxName === 'Nifty') idxColor = "text-brand-primary"; // Changed Nifty to primary for visibility
+                    if(idxName === 'Sensex') idxColor = "text-brand-accent"; // Matches Sensex colors
+                    if(idxName === 'Banknifty') idxColor = "text-brand-info"; // Matches Banknifty colors
 
                     bodyHTML += `<tr class="group hover:bg-dark-800 transition-colors ${rowClass}">
                         <td class="px-4 py-3 whitespace-nowrap bg-dark-900 group-hover:bg-dark-800 border-r border-dark-700 sticky left-0 z-20 font-medium min-w-[140px] w-[140px]">
@@ -1363,18 +1374,26 @@
                             <div class="flex items-center justify-between"><span>${idxName}</span><button onclick="toggleExpiryUI(this, '${date}', '${idxName}')" class="text-[10px] font-bold px-2.5 py-1 rounded transition-all duration-300 border cursor-pointer uppercase ${expClass}">Exp</button></div>
                         </td>`;
                     
-                    state.strategies.forEach(s => {
+                    state.strategies.forEach((s, sIdx) => {
                         let val = state.data[date]?.[idxName]?.[s] ?? '';
                         let numVal = parseFloat(val);
                         let colorClasses = '';
+                        
                         if (!isNaN(numVal)) {
                             if (numVal > 0) colorClasses = '!bg-brand-success/10 !border-brand-success/50 !text-brand-success';
                             else if (numVal < 0) colorClasses = '!bg-brand-danger/10 !border-brand-danger/50 !text-brand-danger';
                         }
-                        bodyHTML += `<td class="px-4 py-3"><input type="number" step="any" class="data-input transition-colors duration-300 ${colorClasses}" placeholder="0.00" value="${val}" oninput="updateInputColor(this)" onchange="updateData('${date}', '${idxName}', '${s}', this.value)"></td>`;
+                        
+                        // Calculating customized TABINDEX 
+                        // Sequence required: Date > Strategy > Index
+                        // 1000 base + (DateBlock Offset) + (Strategy Offset) + Index Position
+                        let tIndex = 1000 + (dateIndex * state.strategies.length * INDICES.length) + (sIdx * INDICES.length) + idx;
+
+                        bodyHTML += `<td class="px-4 py-3"><input type="number" tabindex="${tIndex}" step="any" class="data-input transition-colors duration-300 ${colorClasses}" placeholder="0.00" value="${val}" oninput="updateInputColor(this)" onchange="updateData('${date}', '${idxName}', '${s}', this.value)"></td>`;
                     });
                     bodyHTML += `</tr>`;
                 });
+                dateIndex++;
             });
 
             tbody.innerHTML = bodyHTML || `<tr><td colspan="${state.strategies.length + 2}" class="text-center py-8 text-gray-500">No dates generated.</td></tr>`;
