@@ -33,7 +33,8 @@
                             success: '#10b981',   // Green
                             danger: '#ef4444',    // Red
                             warning: '#f59e0b',   // Amber
-                            info: '#3b82f6'       // Blue for Banknifty
+                            info: '#3b82f6',      // Blue for Banknifty
+                            special: '#ec4899'    // Pink for FnO Stocks
                         }
                     },
                     fontFamily: {
@@ -213,8 +214,8 @@
                 </div>
             </div>
 
-            <!-- Best Combinations Row (3 Columns) -->
-            <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            <!-- Best Combinations Row (4 Columns for large screens) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
                 <!-- Nifty Combo -->
                 <div class="glass p-6 rounded-2xl border border-brand-success/20">
                     <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
@@ -253,6 +254,19 @@
                     </div>
                     <div id="bestBankniftyComboTable"></div>
                 </div>
+
+                <!-- FnO Stocks Combo -->
+                <div class="glass p-6 rounded-2xl border border-brand-special/20">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
+                        <span class="flex items-center gap-2"><i class="ph-fill ph-intersect text-brand-special"></i> FnO Combo (Max 3)</span>
+                    </h3>
+                    <div id="fnostocks-combo-stats" class="mb-4 text-sm text-gray-400 min-h-[40px]">Analyzing synergies...</div>
+                    <div class="h-[250px] w-full relative">
+                        <canvas id="bestFnOStocksComboChart"></canvas>
+                        <div id="fnostocks-combo-fallback" class="absolute inset-0 flex items-center justify-center hidden"></div>
+                    </div>
+                    <div id="bestFnOStocksComboTable"></div>
+                </div>
             </div>
 
             <!-- Manual Combiner Section -->
@@ -266,10 +280,11 @@
                     <!-- Controls -->
                     <div class="w-full lg:w-1/3 space-y-6">
                         <!-- Index Selection -->
-                        <div class="bg-dark-800 p-1 rounded-lg flex w-full gap-1">
-                            <button onclick="setCombinerIndex('Nifty')" id="combiner-idx-nifty" class="flex-1 py-2 text-sm font-medium rounded-md bg-dark-700 text-white shadow transition-all">Nifty</button>
-                            <button onclick="setCombinerIndex('Sensex')" id="combiner-idx-sensex" class="flex-1 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all">Sensex</button>
-                            <button onclick="setCombinerIndex('Banknifty')" id="combiner-idx-banknifty" class="flex-1 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all">Banknifty</button>
+                        <div class="bg-dark-800 p-1 rounded-lg flex flex-wrap w-full gap-1">
+                            <button onclick="setCombinerIndex('Nifty')" id="combiner-idx-nifty" class="flex-1 py-2 px-2 text-xs md:text-sm font-medium rounded-md bg-dark-700 text-white shadow transition-all">Nifty</button>
+                            <button onclick="setCombinerIndex('Sensex')" id="combiner-idx-sensex" class="flex-1 py-2 px-2 text-xs md:text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all">Sensex</button>
+                            <button onclick="setCombinerIndex('Banknifty')" id="combiner-idx-banknifty" class="flex-1 py-2 px-2 text-xs md:text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all">Banknifty</button>
+                            <button onclick="setCombinerIndex('FnOStocks')" id="combiner-idx-fnostocks" class="flex-1 py-2 px-2 text-xs md:text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all">FnO Stocks</button>
                         </div>
                         
                         <!-- Strategy Checkboxes -->
@@ -294,8 +309,8 @@
                 </div>
             </div>
 
-            <!-- Individual Charts Container (3 Columns) -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Individual Charts Container (4 Columns) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <div class="glass p-6 rounded-2xl">
                     <h3 class="text-lg font-semibold mb-4 text-gray-300">All Nifty Curves</h3>
                     <div class="h-[300px] w-full">
@@ -314,20 +329,27 @@
                         <canvas id="bankniftyChart"></canvas>
                     </div>
                 </div>
+                <div class="glass p-6 rounded-2xl">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-300">All FnO Stocks Curves</h3>
+                    <div class="h-[300px] w-full">
+                        <canvas id="fnostocksChart"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
 
         <!-- DEEP ANALYSIS VIEW -->
         <div id="analysis-view" class="p-6 md:p-10 w-full space-y-8 hidden">
-            <header class="flex justify-between items-end">
+            <header class="flex justify-between items-end flex-wrap gap-4">
                 <div>
                     <h1 class="text-3xl font-bold tracking-tight text-white">Deep Analysis</h1>
                     <p class="text-gray-400 mt-1">Filter, sort, and analyze strategies across indices</p>
                 </div>
-                <div class="glass p-1 rounded-lg flex gap-1">
-                    <button onclick="setAnalysisIndex('Nifty')" id="btn-analyze-nifty" class="px-4 py-2 text-sm font-medium rounded-md bg-dark-700 text-white shadow transition-all">Nifty</button>
-                    <button onclick="setAnalysisIndex('Sensex')" id="btn-analyze-sensex" class="px-4 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all">Sensex</button>
-                    <button onclick="setAnalysisIndex('Banknifty')" id="btn-analyze-banknifty" class="px-4 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all">Banknifty</button>
+                <div class="glass p-1 rounded-lg flex flex-wrap gap-1">
+                    <button onclick="setAnalysisIndex('Nifty')" id="btn-analyze-nifty" class="px-3 py-2 text-sm font-medium rounded-md bg-dark-700 text-white shadow transition-all">Nifty</button>
+                    <button onclick="setAnalysisIndex('Sensex')" id="btn-analyze-sensex" class="px-3 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all">Sensex</button>
+                    <button onclick="setAnalysisIndex('Banknifty')" id="btn-analyze-banknifty" class="px-3 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all">Banknifty</button>
+                    <button onclick="setAnalysisIndex('FnOStocks')" id="btn-analyze-fnostocks" class="px-3 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all">FnO Stocks</button>
                 </div>
             </header>
 
@@ -455,8 +477,8 @@
     <!-- JavaScript Logic -->
     <script>
         // --- Core State Management ---
-        const STORAGE_KEY = 'quant_dashboard_data_v4'; // Bumped version for data structure update
-        const INDICES = ['Nifty', 'Sensex', 'Banknifty']; // Updated Order
+        const STORAGE_KEY = 'quant_dashboard_data_v5'; // Bumped version for FnOStocks addition
+        const INDICES = ['Nifty', 'Sensex', 'Banknifty', 'FnOStocks']; // Updated Order with FnO
         
         let state = {
             strategies: ['SwingKing Sniper', 'Booming Bulls', 'Bullseys', 'Aakash'],
@@ -498,9 +520,11 @@
             nifty: null,
             banknifty: null,
             sensex: null,
+            fnostocks: null,
             bestNiftyCombo: null,
             bestBankniftyCombo: null,
             bestSensexCombo: null,
+            bestFnOStocksCombo: null,
             manualCombo: null
         };
 
@@ -571,13 +595,12 @@
                     state.deletedDates = parsed.deletedDates || [];
                     state.expiries = parsed.expiries || state.expiries;
                     
-                    // Backward compatibility: Inject Banknifty and Sensex into old data sets
+                    // Backward compatibility: Inject missing indices into old data sets
                     state.dates.forEach(d => {
-                        if (!state.data[d].Banknifty) state.data[d].Banknifty = {};
-                        if (state.expiries[d].Banknifty === undefined) state.expiries[d].Banknifty = false;
-                        
-                        if (!state.data[d].Sensex) state.data[d].Sensex = {};
-                        if (state.expiries[d].Sensex === undefined) state.expiries[d].Sensex = false;
+                        INDICES.forEach(idx => {
+                            if (!state.data[d][idx]) state.data[d][idx] = {};
+                            if (state.expiries[d][idx] === undefined) state.expiries[d][idx] = false;
+                        });
                     });
                 } catch(e) {
                     console.error("Failed to parse local storage", e);
@@ -616,11 +639,10 @@
                         state = importedState;
                         // Force migration on imported data for all indices
                         state.dates.forEach(d => {
-                            if (!state.data[d].Banknifty) state.data[d].Banknifty = {};
-                            if (state.expiries[d].Banknifty === undefined) state.expiries[d].Banknifty = false;
-                            
-                            if (!state.data[d].Sensex) state.data[d].Sensex = {};
-                            if (state.expiries[d].Sensex === undefined) state.expiries[d].Sensex = false;
+                            INDICES.forEach(idx => {
+                                if (!state.data[d][idx]) state.data[d][idx] = {};
+                                if (state.expiries[d][idx] === undefined) state.expiries[d][idx] = false;
+                            });
                         });
                         saveState();
                         alert("✅ Data imported successfully!");
@@ -658,8 +680,14 @@
             state.dates.sort((a, b) => new Date(a) - new Date(b));
 
             state.dates.forEach(date => {
-                if(!state.data[date]) state.data[date] = { Nifty: {}, Banknifty: {}, Sensex: {} };
-                if(!state.expiries[date]) state.expiries[date] = { Nifty: false, Banknifty: false, Sensex: false };
+                if(!state.data[date]) {
+                    state.data[date] = {};
+                    INDICES.forEach(idx => state.data[date][idx] = {});
+                }
+                if(!state.expiries[date]) {
+                    state.expiries[date] = {};
+                    INDICES.forEach(idx => state.expiries[date][idx] = false);
+                }
             });
             
             saveState();
@@ -1125,8 +1153,8 @@
                 const btn = document.getElementById(idStr);
                 if(btn) {
                     btn.className = index === idx 
-                        ? "flex-1 py-2 text-sm font-medium rounded-md bg-dark-700 text-white shadow transition-all" 
-                        : "flex-1 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all";
+                        ? "flex-1 py-2 px-2 text-xs md:text-sm font-medium rounded-md bg-dark-700 text-white shadow transition-all" 
+                        : "flex-1 py-2 px-2 text-xs md:text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all";
                 }
             });
             renderManualCombinerUI();
@@ -1205,8 +1233,8 @@
                 const btn = document.getElementById(idStr);
                 if(btn) {
                     btn.className = index === idx 
-                        ? "px-4 py-2 text-sm font-medium rounded-md bg-dark-700 text-white shadow transition-all" 
-                        : "px-4 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all";
+                        ? "px-3 py-2 text-sm font-medium rounded-md bg-dark-700 text-white shadow transition-all" 
+                        : "px-3 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all";
                 }
             });
             renderAnalysis();
@@ -1362,16 +1390,17 @@
                     let rowClass = idx === (INDICES.length - 1) ? "border-b-[3px] border-dark-700" : "";
                     
                     let idxColor = "text-gray-400";
-                    if(idxName === 'Nifty') idxColor = "text-brand-primary"; // Changed Nifty to primary for visibility
-                    if(idxName === 'Sensex') idxColor = "text-brand-accent"; // Matches Sensex colors
-                    if(idxName === 'Banknifty') idxColor = "text-brand-info"; // Matches Banknifty colors
+                    if(idxName === 'Nifty') idxColor = "text-brand-primary"; 
+                    if(idxName === 'Sensex') idxColor = "text-brand-accent"; 
+                    if(idxName === 'Banknifty') idxColor = "text-brand-info"; 
+                    if(idxName === 'FnOStocks') idxColor = "text-brand-special"; // Highlight FnO
 
                     bodyHTML += `<tr class="group hover:bg-dark-800 transition-colors ${rowClass}">
                         <td class="px-4 py-3 whitespace-nowrap bg-dark-900 group-hover:bg-dark-800 border-r border-dark-700 sticky left-0 z-20 font-medium min-w-[140px] w-[140px]">
                             ${idx === 0 ? `<div class="flex items-center justify-between">${date}<button onclick="deleteDate('${date}')" class="text-dark-600 hover:text-brand-danger"><i class="ph-bold ph-x"></i></button></div>` : ''}
                         </td>
                         <td class="px-4 py-3 ${idxColor} font-semibold bg-dark-900 group-hover:bg-dark-800 border-r border-dark-700 sticky left-[140px] z-20 min-w-[120px] w-[120px] shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
-                            <div class="flex items-center justify-between"><span>${idxName}</span><button onclick="toggleExpiryUI(this, '${date}', '${idxName}')" class="text-[10px] font-bold px-2.5 py-1 rounded transition-all duration-300 border cursor-pointer uppercase ${expClass}">Exp</button></div>
+                            <div class="flex items-center justify-between"><span>${idxName === 'FnOStocks' ? 'FnO Stocks' : idxName}</span><button onclick="toggleExpiryUI(this, '${date}', '${idxName}')" class="text-[10px] font-bold px-2.5 py-1 rounded transition-all duration-300 border cursor-pointer uppercase ${expClass}">Exp</button></div>
                         </td>`;
                     
                     state.strategies.forEach((s, sIdx) => {
