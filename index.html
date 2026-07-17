@@ -214,58 +214,58 @@
                 </div>
             </div>
 
-            <!-- Best Combinations Row (4 Columns for large screens) -->
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
+            <!-- Best Combinations Row (Now 2x2 grid for better spacing on large screens) -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <!-- Nifty Combo -->
-                <div class="glass p-6 rounded-2xl border border-brand-success/20">
+                <div class="glass p-6 rounded-2xl border border-brand-success/20 flex flex-col">
                     <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
                         <span class="flex items-center gap-2"><i class="ph-fill ph-intersect text-brand-success"></i> Nifty Combo (Max 3)</span>
                     </h3>
-                    <div id="nifty-combo-stats" class="mb-4 text-sm text-gray-400 min-h-[40px]">Analyzing synergies...</div>
-                    <div class="h-[250px] w-full relative">
+                    <div id="nifty-combo-stats" class="mb-4 text-sm text-gray-400 min-h-[60px] flex-shrink-0">Analyzing synergies...</div>
+                    <div class="h-[250px] w-full relative flex-grow min-h-[250px]">
                         <canvas id="bestNiftyComboChart"></canvas>
                         <div id="nifty-combo-fallback" class="absolute inset-0 flex items-center justify-center hidden"></div>
                     </div>
-                    <div id="bestNiftyComboTable"></div>
+                    <div id="bestNiftyComboTable" class="mt-4"></div>
                 </div>
                 
                 <!-- Sensex Combo -->
-                <div class="glass p-6 rounded-2xl border border-brand-accent/20">
+                <div class="glass p-6 rounded-2xl border border-brand-accent/20 flex flex-col">
                     <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
                         <span class="flex items-center gap-2"><i class="ph-fill ph-intersect text-brand-accent"></i> Sensex Combo (Max 3)</span>
                     </h3>
-                    <div id="sensex-combo-stats" class="mb-4 text-sm text-gray-400 min-h-[40px]">Analyzing synergies...</div>
-                    <div class="h-[250px] w-full relative">
+                    <div id="sensex-combo-stats" class="mb-4 text-sm text-gray-400 min-h-[60px] flex-shrink-0">Analyzing synergies...</div>
+                    <div class="h-[250px] w-full relative flex-grow min-h-[250px]">
                         <canvas id="bestSensexComboChart"></canvas>
                         <div id="sensex-combo-fallback" class="absolute inset-0 flex items-center justify-center hidden"></div>
                     </div>
-                    <div id="bestSensexComboTable"></div>
+                    <div id="bestSensexComboTable" class="mt-4"></div>
                 </div>
 
                 <!-- Banknifty Combo -->
-                <div class="glass p-6 rounded-2xl border border-brand-info/20">
+                <div class="glass p-6 rounded-2xl border border-brand-info/20 flex flex-col">
                     <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
                         <span class="flex items-center gap-2"><i class="ph-fill ph-intersect text-brand-info"></i> Banknifty Combo (Max 3)</span>
                     </h3>
-                    <div id="banknifty-combo-stats" class="mb-4 text-sm text-gray-400 min-h-[40px]">Analyzing synergies...</div>
-                    <div class="h-[250px] w-full relative">
+                    <div id="banknifty-combo-stats" class="mb-4 text-sm text-gray-400 min-h-[60px] flex-shrink-0">Analyzing synergies...</div>
+                    <div class="h-[250px] w-full relative flex-grow min-h-[250px]">
                         <canvas id="bestBankniftyComboChart"></canvas>
                         <div id="banknifty-combo-fallback" class="absolute inset-0 flex items-center justify-center hidden"></div>
                     </div>
-                    <div id="bestBankniftyComboTable"></div>
+                    <div id="bestBankniftyComboTable" class="mt-4"></div>
                 </div>
 
                 <!-- FnO Stocks Combo -->
-                <div class="glass p-6 rounded-2xl border border-brand-special/20">
+                <div class="glass p-6 rounded-2xl border border-brand-special/20 flex flex-col">
                     <h3 class="text-lg font-semibold mb-4 flex items-center justify-between">
                         <span class="flex items-center gap-2"><i class="ph-fill ph-intersect text-brand-special"></i> FnO Combo (Max 3)</span>
                     </h3>
-                    <div id="fnostocks-combo-stats" class="mb-4 text-sm text-gray-400 min-h-[40px]">Analyzing synergies...</div>
-                    <div class="h-[250px] w-full relative">
+                    <div id="fnostocks-combo-stats" class="mb-4 text-sm text-gray-400 min-h-[60px] flex-shrink-0">Analyzing synergies...</div>
+                    <div class="h-[250px] w-full relative flex-grow min-h-[250px]">
                         <canvas id="bestFnOStocksComboChart"></canvas>
                         <div id="fnostocks-combo-fallback" class="absolute inset-0 flex items-center justify-center hidden"></div>
                     </div>
-                    <div id="bestFnOStocksComboTable"></div>
+                    <div id="bestFnOStocksComboTable" class="mt-4"></div>
                 </div>
             </div>
 
@@ -1115,10 +1115,21 @@
                 const tableDiv = document.getElementById(`best${index}ComboTable`);
                 
                 if (bestCombo) {
+                    // Improved layout for stats to prevent text merging
                     statsDiv.innerHTML = `
-                        <div class="flex justify-between items-center bg-dark-900/50 p-3 rounded-lg border border-dark-700 mt-2">
-                            <div><span class="block text-white font-semibold text-base">${bestCombo.strategies.join(' + ')}</span><span class="text-xs text-gray-400">Score: <span class="text-brand-success font-bold">${bestCombo.score.toFixed(1)}</span> • PF: ${bestCombo.profitFactor.toFixed(2)} • DD: ${bestCombo.maxDD.toFixed(2)}%</span></div>
-                            <div class="text-right"><span class="block text-white font-bold">${bestCombo.totalRet.toFixed(2)}%</span><span class="text-xs text-gray-400">Total Return</span></div>
+                        <div class="bg-dark-900/50 p-4 rounded-lg border border-dark-700 mt-2 space-y-2">
+                            <div class="flex justify-between items-start gap-4">
+                                <span class="block text-white font-semibold text-sm sm:text-base leading-snug break-words max-w-[70%]">${bestCombo.strategies.join(' + ')}</span>
+                                <div class="text-right shrink-0">
+                                    <span class="block text-white font-bold text-base sm:text-lg">${bestCombo.totalRet.toFixed(2)}%</span>
+                                    <span class="text-[10px] text-gray-400 uppercase tracking-wide">Total Return</span>
+                                </div>
+                            </div>
+                            <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400 border-t border-dark-700 pt-2">
+                                <span>Score: <span class="text-brand-success font-bold">${bestCombo.score.toFixed(1)}</span></span>
+                                <span>PF: ${bestCombo.profitFactor.toFixed(2)}</span>
+                                <span>DD: ${bestCombo.maxDD.toFixed(2)}%</span>
+                            </div>
                         </div>`;
                     renderComboChart(`best${index}ComboChart`, index, bestCombo.strategies, bestCombo, `best${index}Combo`);
                     tableDiv.innerHTML = generateTableHTML(index, bestCombo.strategies);
@@ -1127,9 +1138,9 @@
                     state.strategies.forEach(s => { if(allMetrics[index][s].returns.length > indexMaxPts) indexMaxPts = allMetrics[index][s].returns.length; });
                     
                     if (indexMaxPts >= 7) {
-                        statsDiv.innerHTML = `<div class="bg-brand-danger/10 text-brand-danger text-sm p-3 rounded-lg border border-brand-danger/20 flex items-center gap-2"><i class="ph-bold ph-x-circle text-lg"></i> No combination meets safe criteria (Max 30% DD, Positive Return).</div>`;
+                        statsDiv.innerHTML = `<div class="bg-brand-danger/10 text-brand-danger text-sm p-4 rounded-lg border border-brand-danger/20 flex items-start gap-3 mt-2"><i class="ph-bold ph-x-circle text-xl mt-0.5 shrink-0"></i> <span>No combination meets safe criteria (Max 30% DD, Positive Return).</span></div>`;
                     } else {
-                        statsDiv.innerHTML = `<div class="bg-brand-warning/10 text-brand-warning text-sm p-3 rounded-lg border border-brand-warning/20 flex items-center gap-2"><i class="ph-bold ph-hourglass text-lg"></i> Need 7+ days of data.</div>`;
+                        statsDiv.innerHTML = `<div class="bg-brand-warning/10 text-brand-warning text-sm p-4 rounded-lg border border-brand-warning/20 flex items-center gap-3 mt-2"><i class="ph-bold ph-hourglass text-xl shrink-0"></i> <span>Need 7+ days of data.</span></div>`;
                     }
                     tableDiv.innerHTML = '';
                     clearComboChart(`best${index}ComboChart`, `best${index}Combo`);
