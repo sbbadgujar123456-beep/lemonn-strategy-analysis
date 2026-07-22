@@ -725,6 +725,7 @@
         function getStrategyMetrics(strategy, index) {
             let returns = [], normalReturns = [], expiryReturns = [];
             let grossProfit = 0, grossLoss = 0;
+            let dowReturns = { 1: [], 2: [], 3: [], 4: [], 5: [] };
             
             state.dates.forEach(d => {
                 let val = state.data[d]?.[index]?.[strategy];
@@ -738,10 +739,30 @@
 
                     if (num > 0) grossProfit += num;
                     else if (num < 0) grossLoss += Math.abs(num);
+
+                    let jsDate = parseDate(d);
+                    let dow = jsDate.getDay();
+                    if (dow >= 1 && dow <= 5) dowReturns[dow].push(num);
                 }
             });
 
-            return calculateScoreMetrics(returns, normalReturns, expiryReturns, grossProfit, grossLoss);
+            let baseMetrics = calculateScoreMetrics(returns, normalReturns, expiryReturns, grossProfit, grossLoss);
+            
+            // Add Contextual Edges
+            baseMetrics.expiryWr = MathUtils.winRate(expiryReturns);
+            baseMetrics.normalWr = MathUtils.winRate(normalReturns);
+            baseMetrics.normalCount = normalReturns.length;
+
+            baseMetrics.dowAvgs = {};
+            for(let i = 1; i <= 5; i++) {
+                baseMetrics.dowAvgs[i] = {
+                    avg: MathUtils.average(dowReturns[i]),
+                    count: dowReturns[i].length,
+                    wr: MathUtils.winRate(dowReturns[i])
+                };
+            }
+
+            return baseMetrics;
         }
 
         function getCombinedMetrics(strategiesToCombine, index) {
@@ -1050,31 +1071,58 @@
             const allMetrics = getAllMetrics();
             let maxDataPoints = 0;
             
-            // 1. Single Best Strategy Evaluation
+            // 1. Single Best Strategy Evaluation & Edge Insights
             let bestOverall = null, highestScore = -Infinity;
+            let bestExpiry = null, highestExpiryAvg = 0;
+            let bestNormal = null, highestNormalAvg = 0;
+            let bestDOW = null, highestDOWAvg = 0;
+
             INDICES.forEach(index => {
                 state.strategies.forEach(s => {
                     const m = allMetrics[index][s];
                     if (m.returns.length > maxDataPoints) maxDataPoints = m.returns.length;
 
-                    // Strict requirement: Pos return, decent score (>=4.0), and maxDD <= 30%
+                    // Overall Best (Strict Filters)
                     if (m.returns.length >= 7 && m.totalRet > 0 && m.score >= 4.0 && m.maxDD <= 30 && m.score > highestScore) {
                         highestScore = m.score; 
                         bestOverall = { strategy: s, index: index, metrics: m };
+                    }
+
+                    // Expiry Master
+                    if (m.expiryCount >= 2 && m.expiryWr >= 50 && m.expiryAvg > highestExpiryAvg) {
+                        highestExpiryAvg = m.expiryAvg;
+                        bestExpiry = { strategy: s, index: index, metrics: m };
+                    }
+
+                    // Non-Expiry Safe Haven
+                    if (m.normalCount >= 3 && m.normalWr >= 50 && m.normalAvg > highestNormalAvg) {
+                        highestNormalAvg = m.normalAvg;
+                        bestNormal = { strategy: s, index: index, metrics: m };
+                    }
+
+                    // Day of Week Edge
+                    for(let i = 1; i <= 5; i++) {
+                        let dow = m.dowAvgs[i];
+                        if (dow.count >= 2 && dow.wr >= 60 && dow.avg > highestDOWAvg) {
+                            highestDOWAvg = dow.avg;
+                            bestDOW = { strategy: s, index: index, day: i, avg: dow.avg, wr: dow.wr, count: dow.count };
+                        }
                     }
                 });
             });
 
             const recContent = document.getElementById('recommendation-content');
+            let mainHTML = '';
+
             if (bestOverall) {
                 const m = bestOverall.metrics;
-                recContent.innerHTML = `
+                mainHTML = `
                     <h2 class="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center flex-wrap gap-2">
                         ${bestOverall.strategy} <span class="text-brand-primary text-xl font-normal">on ${bestOverall.index}</span>
                         <span class="text-brand-success text-xs border border-brand-success px-2 py-0.5 rounded-full ml-2">${m.score.toFixed(1)}/10 Score</span>
                     </h2>
                     <p class="text-gray-400 mb-6 max-w-2xl text-sm leading-relaxed">Highest rated individual strategy passing strict risk filters (Max DD < 30%, Total Return > 0%).</p>
-                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6 border-t border-dark-700/50 pt-6">
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6">
                         <div><p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Score (/10)</p><p class="text-2xl font-bold text-brand-primary">${m.score.toFixed(1)}</p></div>
                         <div><p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Profit Factor</p><p class="text-2xl font-bold text-white">${m.profitFactor === 99 ? '∞' : m.profitFactor.toFixed(2)}</p></div>
                         <div><p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Avg Return</p><p class="text-2xl font-bold text-white">${m.avg.toFixed(2)}%</p></div>
@@ -1083,30 +1131,74 @@
                     </div>
                 `;
             } else if (maxDataPoints >= 7) {
-                recContent.innerHTML = `
+                mainHTML = `
                     <div class="flex items-center gap-6 py-4 relative z-10">
-                        <div class="p-4 bg-brand-danger/10 rounded-2xl border border-brand-danger/30">
+                        <div class="p-4 bg-brand-danger/10 rounded-2xl border border-brand-danger/30 shrink-0">
                             <i class="ph-duotone ph-warning-circle text-5xl text-brand-danger"></i>
                         </div>
                         <div>
-                            <h2 class="text-2xl font-bold text-white mb-2">No strategy is good enough to follow right now</h2>
-                            <p class="text-gray-400 text-sm max-w-lg">All available strategies are currently exhibiting high drawdowns (>30%), negative overall returns, or poor risk-to-reward metrics. Capital preservation is recommended until conditions improve.</p>
+                            <h2 class="text-xl md:text-2xl font-bold text-white mb-2">No strategy is good enough to follow right now</h2>
+                            <p class="text-gray-400 text-sm max-w-lg">All available strategies are currently exhibiting high drawdowns (>30%), negative overall returns, or poor risk-to-reward metrics.</p>
                         </div>
                     </div>
                 `;
             } else {
-                recContent.innerHTML = `
+                mainHTML = `
                     <div class="flex items-center gap-6 py-4 relative z-10">
-                        <div class="p-4 bg-dark-700/50 rounded-2xl border border-dark-600">
+                        <div class="p-4 bg-dark-700/50 rounded-2xl border border-dark-600 shrink-0">
                             <i class="ph-duotone ph-hourglass-high text-5xl text-gray-400"></i>
                         </div>
                         <div>
-                            <h2 class="text-2xl font-bold text-white mb-2">Awaiting Data (Need 7+ days)</h2>
+                            <h2 class="text-xl md:text-2xl font-bold text-white mb-2">Awaiting Data (Need 7+ days)</h2>
                             <p class="text-gray-400 text-sm max-w-lg">Enter more daily returns in the Data Entry tab to unlock AI recommendations and combinations.</p>
                         </div>
                     </div>
                 `;
             }
+
+            // --- Construct Edge Insights ---
+            let insightsHTML = '';
+            const daysStr = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+
+            if (bestExpiry && bestExpiry.metrics.expiryAvg > 0) {
+                insightsHTML += `
+                <div class="bg-brand-warning/10 p-4 rounded-xl border border-brand-warning/20 transition-all hover:bg-brand-warning/20">
+                    <h4 class="text-brand-warning font-bold flex items-center gap-2 mb-2"><i class="ph-fill ph-lightning"></i> Expiry Master</h4>
+                    <p class="text-white font-semibold text-sm truncate" title="${bestExpiry.strategy} (${bestExpiry.index})">${bestExpiry.strategy} <span class="text-gray-400 font-normal">(${bestExpiry.index})</span></p>
+                    <p class="text-gray-400 text-xs mt-1.5 leading-relaxed">Averages <span class="text-brand-success font-bold">+${bestExpiry.metrics.expiryAvg.toFixed(2)}%</span> on Expiry days with a <span class="text-white">${bestExpiry.metrics.expiryWr.toFixed(0)}%</span> win rate.</p>
+                </div>`;
+            }
+
+            if (bestNormal && bestNormal.metrics.normalAvg > 0) {
+                insightsHTML += `
+                <div class="bg-brand-success/10 p-4 rounded-xl border border-brand-success/20 transition-all hover:bg-brand-success/20">
+                    <h4 class="text-brand-success font-bold flex items-center gap-2 mb-2"><i class="ph-fill ph-shield-check"></i> Safe Haven (Non-Exp)</h4>
+                    <p class="text-white font-semibold text-sm truncate" title="${bestNormal.strategy} (${bestNormal.index})">${bestNormal.strategy} <span class="text-gray-400 font-normal">(${bestNormal.index})</span></p>
+                    <p class="text-gray-400 text-xs mt-1.5 leading-relaxed">Most reliable on Non-Expiry days, averaging <span class="text-brand-success font-bold">+${bestNormal.metrics.normalAvg.toFixed(2)}%</span> (<span class="text-white">${bestNormal.metrics.normalWr.toFixed(0)}%</span> WR).</p>
+                </div>`;
+            }
+
+            if (bestDOW && bestDOW.avg > 0) {
+                insightsHTML += `
+                <div class="bg-brand-accent/10 p-4 rounded-xl border border-brand-accent/20 transition-all hover:bg-brand-accent/20">
+                    <h4 class="text-brand-accent font-bold flex items-center gap-2 mb-2"><i class="ph-fill ph-calendar-check"></i> ${daysStr[bestDOW.day]} Edge</h4>
+                    <p class="text-white font-semibold text-sm truncate" title="${bestDOW.strategy} (${bestDOW.index})">${bestDOW.strategy} <span class="text-gray-400 font-normal">(${bestDOW.index})</span></p>
+                    <p class="text-gray-400 text-xs mt-1.5 leading-relaxed">Consistently performs on ${daysStr[bestDOW.day]}s, averaging <span class="text-brand-success font-bold">+${bestDOW.avg.toFixed(2)}%</span> (<span class="text-white">${bestDOW.wr.toFixed(0)}%</span> WR).</p>
+                </div>`;
+            }
+
+            if (insightsHTML !== '') {
+                mainHTML += `
+                    <div class="mt-8 pt-6 border-t border-dark-700/50">
+                        <h3 class="text-sm font-semibold text-gray-300 mb-4 flex items-center gap-2"><i class="ph-fill ph-sparkle text-brand-primary"></i> Contextual AI Insights</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            ${insightsHTML}
+                        </div>
+                    </div>
+                `;
+            }
+
+            recContent.innerHTML = mainHTML;
 
             // 2. Best Combinations for all indices
             INDICES.forEach(index => {
