@@ -1073,9 +1073,10 @@
             
             // 1. Single Best Strategy Evaluation & Edge Insights
             let bestOverall = null, highestScore = -Infinity;
-            let bestExpiry = null, highestExpiryAvg = 0;
-            let bestNormal = null, highestNormalAvg = 0;
-            let bestDOW = null, highestDOWAvg = 0;
+            
+            let expiryCandidates = [];
+            let normalCandidates = [];
+            let dowCandidates = [];
 
             INDICES.forEach(index => {
                 state.strategies.forEach(s => {
@@ -1088,28 +1089,42 @@
                         bestOverall = { strategy: s, index: index, metrics: m };
                     }
 
-                    // Expiry Master
-                    if (m.expiryCount >= 2 && m.expiryWr >= 50 && m.expiryAvg > highestExpiryAvg) {
-                        highestExpiryAvg = m.expiryAvg;
-                        bestExpiry = { strategy: s, index: index, metrics: m };
+                    // Collect candidates for Edge Insights (Requiring at least 10 data points)
+                    if (m.expiryCount >= 10 && m.expiryWr >= 50 && m.expiryAvg > 0) {
+                        expiryCandidates.push({ strategy: s, index: index, avg: m.expiryAvg, metrics: m });
                     }
 
                     // Non-Expiry Safe Haven
-                    if (m.normalCount >= 3 && m.normalWr >= 50 && m.normalAvg > highestNormalAvg) {
-                        highestNormalAvg = m.normalAvg;
-                        bestNormal = { strategy: s, index: index, metrics: m };
+                    if (m.normalCount >= 10 && m.normalWr >= 50 && m.normalAvg > 0) {
+                        normalCandidates.push({ strategy: s, index: index, avg: m.normalAvg, metrics: m });
                     }
 
                     // Day of Week Edge
                     for(let i = 1; i <= 5; i++) {
                         let dow = m.dowAvgs[i];
-                        if (dow.count >= 2 && dow.wr >= 60 && dow.avg > highestDOWAvg) {
-                            highestDOWAvg = dow.avg;
-                            bestDOW = { strategy: s, index: index, day: i, avg: dow.avg, wr: dow.wr, count: dow.count };
+                        if (dow.count >= 10 && dow.wr >= 60 && dow.avg > 0) {
+                            dowCandidates.push({ strategy: s, index: index, day: i, avg: dow.avg, wr: dow.wr, count: dow.count, metrics: m });
                         }
                     }
                 });
             });
+
+            // Sort candidates by average return descending
+            expiryCandidates.sort((a, b) => b.avg - a.avg);
+            normalCandidates.sort((a, b) => b.avg - a.avg);
+            dowCandidates.sort((a, b) => b.avg - a.avg);
+
+            let bestExpiry = expiryCandidates[0] || null;
+            let bestNormal = normalCandidates[0] || null;
+            
+            // For DOW, pick the best one that isn't already the Expiry Master to avoid redundancy
+            let bestDOW = null;
+            for (let candidate of dowCandidates) {
+                if (!bestExpiry || candidate.strategy !== bestExpiry.strategy || candidate.index !== bestExpiry.index) {
+                    bestDOW = candidate;
+                    break;
+                }
+            }
 
             const recContent = document.getElementById('recommendation-content');
             let mainHTML = '';
