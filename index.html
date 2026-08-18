@@ -63,10 +63,10 @@
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        /* Custom Scrollbar - Updated for Better Horizontal Scrolling */
+        /* Custom Scrollbar */
         ::-webkit-scrollbar {
             width: 10px;
-            height: 14px; /* Thicker for easier horizontal dragging */
+            height: 14px;
         }
         ::-webkit-scrollbar-track {
             background: #0f111a; 
@@ -75,7 +75,7 @@
         ::-webkit-scrollbar-thumb {
             background: #262a40; 
             border-radius: 8px;
-            border: 3px solid #0f111a; /* Creates a nice padding effect */
+            border: 3px solid #0f111a;
         }
         ::-webkit-scrollbar-thumb:hover {
             background: #6366f1; 
@@ -98,7 +98,6 @@
             border-color: #6366f1;
             background: rgba(99, 102, 241, 0.05);
         }
-        /* Hide number arrows */
         input[type=number]::-webkit-inner-spin-button, 
         input[type=number]::-webkit-outer-spin-button { 
             -webkit-appearance: none; 
@@ -214,7 +213,7 @@
                 </div>
             </div>
 
-            <!-- Best Combinations Row (Now 2x2 grid for better spacing on large screens) -->
+            <!-- Best Combinations Row -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <!-- Nifty Combo -->
                 <div class="glass p-6 rounded-2xl border border-brand-success/20 flex flex-col">
@@ -309,7 +308,7 @@
                 </div>
             </div>
 
-            <!-- Individual Charts Container (4 Columns) -->
+            <!-- Individual Charts Container -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <div class="glass p-6 rounded-2xl">
                     <h3 class="text-lg font-semibold mb-4 text-gray-300">All Nifty Curves</h3>
@@ -410,6 +409,9 @@
                             <th class="px-6 py-4 text-right sortable-header" title="Sharpe Ratio (Avg Return / StdDev)" onclick="setAnalysisSort('sharpe')">
                                 Sharpe <i class="ph-bold ph-caret-down sort-icon" id="sort-icon-sharpe"></i>
                             </th>
+                            <th class="px-6 py-4 text-right sortable-header" title="Reward to Risk Ratio (Avg Win / Avg Loss)" onclick="setAnalysisSort('rrRatio')">
+                                R:R <i class="ph-bold ph-caret-down sort-icon" id="sort-icon-rrRatio"></i>
+                            </th>
                             <th class="px-6 py-4 text-right sortable-header" title="Standard Deviation" onclick="setAnalysisSort('std')">
                                 Volatility <i class="ph-bold ph-caret-down sort-icon" id="sort-icon-std"></i>
                             </th>
@@ -477,8 +479,8 @@
     <!-- JavaScript Logic -->
     <script>
         // --- Core State Management ---
-        const STORAGE_KEY = 'quant_dashboard_data_v5'; // Bumped version for FnOStocks addition
-        const INDICES = ['Nifty', 'Sensex', 'Banknifty', 'FnOStocks']; // Updated Order with FnO
+        const STORAGE_KEY = 'quant_dashboard_data_v6'; 
+        const INDICES = ['Nifty', 'Sensex', 'Banknifty', 'FnOStocks']; 
         
         let state = {
             strategies: ['SwingKing Sniper', 'Booming Bulls', 'Bullseys', 'Aakash'],
@@ -595,7 +597,6 @@
                     state.deletedDates = parsed.deletedDates || [];
                     state.expiries = parsed.expiries || state.expiries;
                     
-                    // Backward compatibility: Inject missing indices into old data sets
                     state.dates.forEach(d => {
                         INDICES.forEach(idx => {
                             if (!state.data[d][idx]) state.data[d][idx] = {};
@@ -637,7 +638,6 @@
                     const importedState = JSON.parse(e.target.result);
                     if (importedState.strategies && importedState.data && importedState.dates) {
                         state = importedState;
-                        // Force migration on imported data for all indices
                         state.dates.forEach(d => {
                             INDICES.forEach(idx => {
                                 if (!state.data[d][idx]) state.data[d][idx] = {};
@@ -706,12 +706,19 @@
             const profitFactor = grossLoss === 0 ? (grossProfit === 0 ? 0 : 99) : (grossProfit / grossLoss);
             const sharpe = std === 0 ? 0 : (avg / std);
 
+            // Calculate Reward to Risk Ratio (Avg Win / Avg Loss)
+            const wins = returns.filter(r => r > 0);
+            const losses = returns.filter(r => r < 0);
+            const avgWin = wins.length > 0 ? wins.reduce((a, b) => a + b, 0) / wins.length : 0;
+            const avgLoss = losses.length > 0 ? Math.abs(losses.reduce((a, b) => a + b, 0) / losses.length) : 0;
+            const rrRatio = avgLoss === 0 ? (avgWin === 0 ? 0 : 99) : (avgWin / avgLoss);
+
             let score = 0;
             if (returns.length > 0) {
                 let wrScore = (wr / 100) * 4;
                 let sharpeScore = Math.max(0, Math.min(sharpe * 7, 3.5));
                 let pfScore = Math.max(0, Math.min((profitFactor - 1) * 1.5, 2.5));
-                let ddPenalty = maxDD * 0.15; 
+                let ddPenalty = maxDD * 0.1; // Reduced penalty for higher DD allowance
                 
                 score = wrScore + sharpeScore + pfScore - ddPenalty;
 
@@ -719,7 +726,7 @@
                 score = Math.max(0, Math.min(10, score));
             }
 
-            return { returns, avg, normalAvg, expiryAvg, std, totalRet, maxDD, wr, profitFactor, sharpe, score, eqCurve, expiryCount: expiryReturns.length };
+            return { returns, avg, normalAvg, expiryAvg, std, totalRet, maxDD, wr, profitFactor, sharpe, rrRatio, score, eqCurve, expiryCount: expiryReturns.length };
         }
 
         function getStrategyMetrics(strategy, index) {
@@ -748,7 +755,6 @@
 
             let baseMetrics = calculateScoreMetrics(returns, normalReturns, expiryReturns, grossProfit, grossLoss);
             
-            // Add Contextual Edges
             baseMetrics.expiryWr = MathUtils.winRate(expiryReturns);
             baseMetrics.normalWr = MathUtils.winRate(normalReturns);
             baseMetrics.normalCount = normalReturns.length;
@@ -799,7 +805,6 @@
         }
 
         function findBestCombination(index) {
-            // Strict minLength=2, maxLength=3
             const allCombos = (function getCombos(arr, minLength, maxLength) {
                 const res = [];
                 const f = (prefix, ar) => {
@@ -816,11 +821,12 @@
             let bestCombo = null, highestScore = -Infinity;
             allCombos.forEach(combo => {
                 const metrics = getCombinedMetrics(combo, index);
-                // Strict criteria for recommendation: positive returns, acceptable score, reasonable DD
+                // Relaxed DD filter to 120%, added RR filter
                 if (metrics.returns.length >= 7 && 
                     metrics.totalRet > 0 && 
-                    metrics.score >= 4.0 && 
-                    metrics.maxDD <= 30 && 
+                    metrics.score >= 3.0 && 
+                    metrics.maxDD <= 120 && 
+                    metrics.rrRatio >= 1.2 &&
                     metrics.score > highestScore) {
                     highestScore = metrics.score;
                     bestCombo = metrics;
@@ -956,7 +962,6 @@
             return html;
         }
 
-
         // --- UI Renderers ---
         function renderComboChart(canvasId, index, strategiesList, combinedMetrics, chartInstanceKey) {
             const allIndividualMetrics = getAllMetrics();
@@ -1076,54 +1081,70 @@
             
             let expiryCandidates = [];
             let normalCandidates = [];
-            let dowCandidates = [];
+            let fnoCandidates = [];
 
             INDICES.forEach(index => {
                 state.strategies.forEach(s => {
                     const m = allMetrics[index][s];
                     if (m.returns.length > maxDataPoints) maxDataPoints = m.returns.length;
 
-                    // Overall Best (Strict Filters)
-                    if (m.returns.length >= 7 && m.totalRet > 0 && m.score >= 4.0 && m.maxDD <= 30 && m.score > highestScore) {
+                    // Overall Best (Relaxed DD to 120%, Added R:R filter)
+                    if (m.returns.length >= 7 && m.totalRet > 0 && m.score >= 3.0 && m.maxDD <= 120 && m.rrRatio >= 1.2 && m.score > highestScore) {
                         highestScore = m.score; 
                         bestOverall = { strategy: s, index: index, metrics: m };
                     }
 
-                    // Collect candidates for Edge Insights (Requiring at least 10 data points)
                     if (m.expiryCount >= 10 && m.expiryWr >= 50 && m.expiryAvg > 0) {
                         expiryCandidates.push({ strategy: s, index: index, avg: m.expiryAvg, metrics: m });
                     }
 
-                    // Non-Expiry Safe Haven
                     if (m.normalCount >= 10 && m.normalWr >= 50 && m.normalAvg > 0) {
                         normalCandidates.push({ strategy: s, index: index, avg: m.normalAvg, metrics: m });
                     }
-
-                    // Day of Week Edge
-                    for(let i = 1; i <= 5; i++) {
-                        let dow = m.dowAvgs[i];
-                        if (dow.count >= 10 && dow.wr >= 60 && dow.avg > 0) {
-                            dowCandidates.push({ strategy: s, index: index, day: i, avg: dow.avg, wr: dow.wr, count: dow.count, metrics: m });
-                        }
+                    
+                    if (index === 'FnOStocks' && m.returns.length >= 7 && m.totalRet > 0) {
+                         fnoCandidates.push({ strategy: s, index: index, score: m.score, metrics: m });
                     }
                 });
             });
 
-            // Sort candidates by average return descending
+            // Sort candidates to find the best ones
             expiryCandidates.sort((a, b) => b.avg - a.avg);
             normalCandidates.sort((a, b) => b.avg - a.avg);
-            dowCandidates.sort((a, b) => b.avg - a.avg);
+            fnoCandidates.sort((a, b) => b.score - a.score);
 
-            let bestExpiry = expiryCandidates[0] || null;
-            let bestNormal = normalCandidates[0] || null;
-            
-            // For DOW, pick the best one that isn't already the Expiry Master to avoid redundancy
-            let bestDOW = null;
-            for (let candidate of dowCandidates) {
-                if (!bestExpiry || candidate.strategy !== bestExpiry.strategy || candidate.index !== bestExpiry.index) {
-                    bestDOW = candidate;
+            // Ensure uniqueness across recommendations
+            let recommendedIds = new Set();
+            if (bestOverall) recommendedIds.add(`${bestOverall.strategy}-${bestOverall.index}`);
+
+            let bestExpiry = null;
+            for (let c of expiryCandidates) {
+                let id = `${c.strategy}-${c.index}`;
+                if (!recommendedIds.has(id)) {
+                    bestExpiry = c;
+                    recommendedIds.add(id);
                     break;
                 }
+            }
+
+            let bestNormal = null;
+            for (let c of normalCandidates) {
+                let id = `${c.strategy}-${c.index}`;
+                if (!recommendedIds.has(id)) {
+                    bestNormal = c;
+                    recommendedIds.add(id);
+                    break;
+                }
+            }
+
+            let bestFnO = null;
+            for (let c of fnoCandidates) {
+                 let id = `${c.strategy}-${c.index}`;
+                 if (!recommendedIds.has(id)) {
+                     bestFnO = c;
+                     recommendedIds.add(id);
+                     break;
+                 }
             }
 
             const recContent = document.getElementById('recommendation-content');
@@ -1136,9 +1157,10 @@
                         ${bestOverall.strategy} <span class="text-brand-primary text-xl font-normal">on ${bestOverall.index}</span>
                         <span class="text-brand-success text-xs border border-brand-success px-2 py-0.5 rounded-full ml-2">${m.score.toFixed(1)}/10 Score</span>
                     </h2>
-                    <p class="text-gray-400 mb-6 max-w-2xl text-sm leading-relaxed">Highest rated individual strategy passing strict risk filters (Max DD < 30%, Total Return > 0%).</p>
-                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6">
+                    <p class="text-gray-400 mb-6 max-w-3xl text-sm leading-relaxed">Highest rated individual strategy passing risk filters (Max DD < 120%, R:R > 1.2, Total Return > 0%). <strong class="text-gray-300">Overall Balanced.</strong></p>
+                    <div class="grid grid-cols-2 md:grid-cols-6 gap-4 mt-6">
                         <div><p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Score (/10)</p><p class="text-2xl font-bold text-brand-primary">${m.score.toFixed(1)}</p></div>
+                        <div><p class="text-xs text-gray-500 uppercase tracking-wider mb-1">R:R Ratio</p><p class="text-2xl font-bold text-brand-success">${m.rrRatio === 99 ? '∞' : m.rrRatio.toFixed(2)}</p></div>
                         <div><p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Profit Factor</p><p class="text-2xl font-bold text-white">${m.profitFactor === 99 ? '∞' : m.profitFactor.toFixed(2)}</p></div>
                         <div><p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Avg Return</p><p class="text-2xl font-bold text-white">${m.avg.toFixed(2)}%</p></div>
                         <div><p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Max Drawdown</p><p class="text-2xl font-bold text-brand-danger">${m.maxDD.toFixed(2)}%</p></div>
@@ -1153,7 +1175,7 @@
                         </div>
                         <div>
                             <h2 class="text-xl md:text-2xl font-bold text-white mb-2">No strategy is good enough to follow right now</h2>
-                            <p class="text-gray-400 text-sm max-w-lg">All available strategies are currently exhibiting high drawdowns (>30%), negative overall returns, or poor risk-to-reward metrics.</p>
+                            <p class="text-gray-400 text-sm max-w-lg">All available strategies are currently exhibiting extreme drawdowns (>120%), poor R:R (<1.2), negative overall returns, or low scores.</p>
                         </div>
                     </div>
                 `;
@@ -1173,32 +1195,31 @@
 
             // --- Construct Edge Insights ---
             let insightsHTML = '';
-            const daysStr = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
-            if (bestExpiry && bestExpiry.metrics.expiryAvg > 0) {
+            if (bestExpiry) {
                 insightsHTML += `
                 <div class="bg-brand-warning/10 p-4 rounded-xl border border-brand-warning/20 transition-all hover:bg-brand-warning/20">
-                    <h4 class="text-brand-warning font-bold flex items-center gap-2 mb-2"><i class="ph-fill ph-lightning"></i> Expiry Master</h4>
+                    <h4 class="text-brand-warning font-bold flex items-center gap-2 mb-2"><i class="ph-fill ph-lightning"></i> Best on Expiry</h4>
                     <p class="text-white font-semibold text-sm truncate" title="${bestExpiry.strategy} (${bestExpiry.index})">${bestExpiry.strategy} <span class="text-gray-400 font-normal">(${bestExpiry.index})</span></p>
                     <p class="text-gray-400 text-xs mt-1.5 leading-relaxed">Averages <span class="text-brand-success font-bold">+${bestExpiry.metrics.expiryAvg.toFixed(2)}%</span> on Expiry days with a <span class="text-white">${bestExpiry.metrics.expiryWr.toFixed(0)}%</span> win rate.</p>
                 </div>`;
             }
 
-            if (bestNormal && bestNormal.metrics.normalAvg > 0) {
+            if (bestNormal) {
                 insightsHTML += `
                 <div class="bg-brand-success/10 p-4 rounded-xl border border-brand-success/20 transition-all hover:bg-brand-success/20">
-                    <h4 class="text-brand-success font-bold flex items-center gap-2 mb-2"><i class="ph-fill ph-shield-check"></i> Safe Haven (Non-Exp)</h4>
+                    <h4 class="text-brand-success font-bold flex items-center gap-2 mb-2"><i class="ph-fill ph-shield-check"></i> Best on Non-Expiry</h4>
                     <p class="text-white font-semibold text-sm truncate" title="${bestNormal.strategy} (${bestNormal.index})">${bestNormal.strategy} <span class="text-gray-400 font-normal">(${bestNormal.index})</span></p>
                     <p class="text-gray-400 text-xs mt-1.5 leading-relaxed">Most reliable on Non-Expiry days, averaging <span class="text-brand-success font-bold">+${bestNormal.metrics.normalAvg.toFixed(2)}%</span> (<span class="text-white">${bestNormal.metrics.normalWr.toFixed(0)}%</span> WR).</p>
                 </div>`;
             }
 
-            if (bestDOW && bestDOW.avg > 0) {
+            if (bestFnO) {
                 insightsHTML += `
-                <div class="bg-brand-accent/10 p-4 rounded-xl border border-brand-accent/20 transition-all hover:bg-brand-accent/20">
-                    <h4 class="text-brand-accent font-bold flex items-center gap-2 mb-2"><i class="ph-fill ph-calendar-check"></i> ${daysStr[bestDOW.day]} Edge</h4>
-                    <p class="text-white font-semibold text-sm truncate" title="${bestDOW.strategy} (${bestDOW.index})">${bestDOW.strategy} <span class="text-gray-400 font-normal">(${bestDOW.index})</span></p>
-                    <p class="text-gray-400 text-xs mt-1.5 leading-relaxed">Consistently performs on ${daysStr[bestDOW.day]}s, averaging <span class="text-brand-success font-bold">+${bestDOW.avg.toFixed(2)}%</span> (<span class="text-white">${bestDOW.wr.toFixed(0)}%</span> WR).</p>
+                <div class="bg-brand-special/10 p-4 rounded-xl border border-brand-special/20 transition-all hover:bg-brand-special/20">
+                    <h4 class="text-brand-special font-bold flex items-center gap-2 mb-2"><i class="ph-fill ph-trend-up"></i> Best in FnO</h4>
+                    <p class="text-white font-semibold text-sm truncate" title="${bestFnO.strategy} (${bestFnO.index})">${bestFnO.strategy} <span class="text-gray-400 font-normal">(${bestFnO.index})</span></p>
+                    <p class="text-gray-400 text-xs mt-1.5 leading-relaxed">Top performing FnO strategy. Score: <span class="text-white font-bold">${bestFnO.metrics.score.toFixed(1)}</span>, Total Ret: <span class="text-brand-success font-bold">+${bestFnO.metrics.totalRet.toFixed(2)}%</span>.</p>
                 </div>`;
             }
 
@@ -1222,7 +1243,6 @@
                 const tableDiv = document.getElementById(`best${index}ComboTable`);
                 
                 if (bestCombo) {
-                    // Improved layout for stats to prevent text merging
                     statsDiv.innerHTML = `
                         <div class="bg-dark-900/50 p-4 rounded-lg border border-dark-700 mt-2 space-y-2">
                             <div class="flex justify-between items-start gap-4">
@@ -1234,6 +1254,7 @@
                             </div>
                             <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400 border-t border-dark-700 pt-2">
                                 <span>Score: <span class="text-brand-success font-bold">${bestCombo.score.toFixed(1)}</span></span>
+                                <span>R:R: <span class="text-brand-success font-bold">${bestCombo.rrRatio.toFixed(2)}</span></span>
                                 <span>PF: ${bestCombo.profitFactor.toFixed(2)}</span>
                                 <span>DD: ${bestCombo.maxDD.toFixed(2)}%</span>
                             </div>
@@ -1245,7 +1266,7 @@
                     state.strategies.forEach(s => { if(allMetrics[index][s].returns.length > indexMaxPts) indexMaxPts = allMetrics[index][s].returns.length; });
                     
                     if (indexMaxPts >= 7) {
-                        statsDiv.innerHTML = `<div class="bg-brand-danger/10 text-brand-danger text-sm p-4 rounded-lg border border-brand-danger/20 flex items-start gap-3 mt-2"><i class="ph-bold ph-x-circle text-xl mt-0.5 shrink-0"></i> <span>No combination meets safe criteria (Max 30% DD, Positive Return).</span></div>`;
+                        statsDiv.innerHTML = `<div class="bg-brand-danger/10 text-brand-danger text-sm p-4 rounded-lg border border-brand-danger/20 flex items-start gap-3 mt-2"><i class="ph-bold ph-x-circle text-xl mt-0.5 shrink-0"></i> <span>No combo passes criteria (DD < 120%, R:R > 1.2, Pos Return).</span></div>`;
                     } else {
                         statsDiv.innerHTML = `<div class="bg-brand-warning/10 text-brand-warning text-sm p-4 rounded-lg border border-brand-warning/20 flex items-center gap-3 mt-2"><i class="ph-bold ph-hourglass text-xl shrink-0"></i> <span>Need 7+ days of data.</span></div>`;
                     }
@@ -1317,7 +1338,7 @@
                     <div><span class="text-gray-500">Total Return:</span> <span class="text-white font-medium float-right">${cMetrics.totalRet.toFixed(2)}%</span></div>
                     <div><span class="text-gray-500">Max DD:</span> <span class="text-brand-danger font-medium float-right">${cMetrics.maxDD.toFixed(2)}%</span></div>
                     <div><span class="text-gray-500">Win Rate:</span> <span class="text-white font-medium float-right">${cMetrics.wr.toFixed(0)}%</span></div>
-                    <div><span class="text-gray-500">Sharpe:</span> <span class="text-brand-success font-medium float-right">${cMetrics.sharpe.toFixed(2)}</span></div>
+                    <div><span class="text-gray-500">R:R Ratio:</span> <span class="text-brand-success font-medium float-right">${cMetrics.rrRatio.toFixed(2)}</span></div>
                 </div>
                 ${combinerState.selectedStrategies.length > 1 ? `<div class="mt-2 text-[10px] text-brand-warning text-center bg-brand-warning/10 p-1 rounded">Includes ${(0.02 * (combinerState.selectedStrategies.length-1)).toFixed(2)}% daily exec. drag</div>` : ''}
             `;
@@ -1386,7 +1407,7 @@
                 analysisState.sortDir = analysisState.sortDir === 'desc' ? 'asc' : 'desc';
             } else {
                 analysisState.sortCol = colName;
-                analysisState.sortDir = 'desc'; // Default to desc on new column
+                analysisState.sortDir = 'desc'; 
             }
             renderAnalysis();
         }
@@ -1394,7 +1415,7 @@
         function updateSortIcons() {
             document.querySelectorAll('.sort-icon').forEach(icon => {
                 icon.classList.remove('active', 'ph-caret-down', 'ph-caret-up');
-                icon.classList.add('ph-caret-down'); // default inactive
+                icon.classList.add('ph-caret-down'); 
             });
             
             const activeIcon = document.getElementById(`sort-icon-${analysisState.sortCol}`);
@@ -1410,7 +1431,6 @@
             const metrics = allMetrics[analysisState.index];
             const tbody = document.getElementById('analysis-table-body');
             
-            // 1. Gather all strategy data into an array for filtering & sorting
             let tableData = [];
             state.strategies.forEach((s, i) => {
                 const m = metrics[s];
@@ -1419,7 +1439,6 @@
                 }
             });
 
-            // 2. Apply Filters
             const { minAvg, minWinRate, maxDD, minTotal, minScore } = analysisState.filters;
             
             tableData = tableData.filter(d => {
@@ -1431,24 +1450,20 @@
                 return true;
             });
 
-            // 3. Apply Sorting
             tableData.sort((a, b) => {
                 let valA = a[analysisState.sortCol];
                 let valB = b[analysisState.sortCol];
 
                 if (analysisState.sortCol === 'strategy') {
-                    // String comparison for strategy name
                     let comp = valA.localeCompare(valB);
                     return analysisState.sortDir === 'asc' ? comp : -comp;
                 } else {
-                    // Numeric comparison
                     if (valA < valB) return analysisState.sortDir === 'asc' ? -1 : 1;
                     if (valA > valB) return analysisState.sortDir === 'asc' ? 1 : -1;
                     return 0;
                 }
             });
 
-            // Find min/max for highlighting within the FILTERED set
             let maxAvg = -Infinity, minStd = Infinity, minDD = Infinity, maxScore = -Infinity;
             tableData.forEach(d => {
                 if(d.avg > maxAvg) maxAvg = d.avg; 
@@ -1457,7 +1472,6 @@
                 if(d.score > maxScore) maxScore = d.score;
             });
 
-            // 4. Generate HTML
             let html = '';
             tableData.forEach((m) => {
                 const s = m.strategy;
@@ -1475,13 +1489,14 @@
                     <td class="px-6 py-4 text-right ${m.wr > 50 ? 'text-brand-success' : 'text-brand-danger'}">${m.wr.toFixed(0)}%</td>
                     <td class="px-6 py-4 text-right">${m.profitFactor === 99 ? '∞' : m.profitFactor.toFixed(2)}</td>
                     <td class="px-6 py-4 text-right">${m.sharpe.toFixed(2)}</td>
+                    <td class="px-6 py-4 text-right">${m.rrRatio === 99 ? '∞' : m.rrRatio.toFixed(2)}</td>
                     <td class="px-6 py-4 text-right">${m.std.toFixed(2)}</td>
                     <td class="px-6 py-4 text-right ${m.maxDD === minDD ? 'text-brand-success font-bold' : 'text-brand-danger'}">${m.maxDD.toFixed(2)}%</td>
                     <td class="px-6 py-4 text-right ${cScore}">${m.score.toFixed(1)}</td>
                 </tr>`;
             });
             
-            tbody.innerHTML = html || `<tr><td colspan="11" class="text-center py-8 text-gray-500">No matching strategies found.</td></tr>`;
+            tbody.innerHTML = html || `<tr><td colspan="12" class="text-center py-8 text-gray-500">No matching strategies found.</td></tr>`;
             
             updateSortIcons();
         }
@@ -1499,7 +1514,7 @@
             head.innerHTML = headHTML;
 
             let bodyHTML = '';
-            let dateIndex = 0; // Needed for tabindex calculations
+            let dateIndex = 0; 
 
             [...state.dates].reverse().forEach(date => {
                 INDICES.forEach((idxName, idx) => {
@@ -1511,7 +1526,7 @@
                     if(idxName === 'Nifty') idxColor = "text-brand-primary"; 
                     if(idxName === 'Sensex') idxColor = "text-brand-accent"; 
                     if(idxName === 'Banknifty') idxColor = "text-brand-info"; 
-                    if(idxName === 'FnOStocks') idxColor = "text-brand-special"; // Highlight FnO
+                    if(idxName === 'FnOStocks') idxColor = "text-brand-special"; 
 
                     bodyHTML += `<tr class="group hover:bg-dark-800 transition-colors ${rowClass}">
                         <td class="px-4 py-3 whitespace-nowrap bg-dark-900 group-hover:bg-dark-800 border-r border-dark-700 sticky left-0 z-20 font-medium min-w-[140px] w-[140px]">
@@ -1531,9 +1546,6 @@
                             else if (numVal < 0) colorClasses = '!bg-brand-danger/10 !border-brand-danger/50 !text-brand-danger';
                         }
                         
-                        // Calculating customized TABINDEX 
-                        // Sequence required: Date > Strategy > Index
-                        // 1000 base + (DateBlock Offset) + (Strategy Offset) + Index Position
                         let tIndex = 1000 + (dateIndex * state.strategies.length * INDICES.length) + (sIdx * INDICES.length) + idx;
 
                         bodyHTML += `<td class="px-4 py-3"><input type="number" tabindex="${tIndex}" step="any" class="data-input transition-colors duration-300 ${colorClasses}" placeholder="0.00" value="${val}" oninput="updateInputColor(this)" onchange="updateData('${date}', '${idxName}', '${s}', this.value)"></td>`;
