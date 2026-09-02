@@ -184,6 +184,10 @@
                     <i class="ph ph-database text-2xl group-hover:scale-110 transition-transform"></i>
                     <span class="font-medium hidden md:block">Data Entry</span>
                 </button>
+                <button onclick="switchTab('closed')" id="nav-closed" class="flex items-center gap-3 w-full p-3 rounded-lg text-gray-400 hover:text-white hover:bg-dark-800 transition-all group">
+                    <i class="ph ph-archive-box text-2xl group-hover:scale-110 transition-transform"></i>
+                    <span class="font-medium hidden md:block">Closed Strategies</span>
+                </button>
             </div>
         </div>
     </nav>
@@ -478,25 +482,32 @@
                     </tbody>
                 </table>
             </div>
+        </div>
 
-            <!-- Closed / Archived Strategies Section -->
-            <div id="archived-strategies-section" class="mt-12 hidden space-y-4 pt-8 border-t border-dark-700 border-dashed">
-                <div>
-                    <h2 class="text-xl font-bold tracking-tight text-gray-400 flex items-center gap-2">
-                        <i class="ph-fill ph-archive-box"></i> Closed Strategies
-                    </h2>
-                    <p class="text-gray-500 text-sm mt-1">These strategies are disabled in the manager. They are kept here for historical reference.</p>
-                </div>
-                <div class="glass rounded-xl border border-dark-700/50 overflow-hidden overflow-x-auto shadow-2xl relative pb-2 data-table-container opacity-80">
-                    <table class="w-full text-sm text-left">
-                        <thead class="text-xs text-gray-500 uppercase bg-dark-900 border-b border-dark-700" id="archived-data-table-head">
-                            <!-- Dynamically built header -->
-                        </thead>
-                        <tbody id="archived-data-table-body" class="divide-y divide-dark-700/50">
-                            <!-- Dynamically built rows -->
-                        </tbody>
-                    </table>
-                </div>
+        <!-- CLOSED STRATEGIES VIEW -->
+        <div id="closed-view" class="p-6 md:p-10 w-full space-y-6 hidden">
+            <header>
+                <h1 class="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
+                    <i class="ph-fill ph-archive-box text-brand-primary"></i> Closed Strategies
+                </h1>
+                <p class="text-gray-400 mt-1">Historical reference for disabled strategies. Re-enable them from the Data Entry settings.</p>
+            </header>
+
+            <div id="closed-strategies-container" class="glass rounded-xl border border-dark-700/50 overflow-hidden overflow-x-auto shadow-2xl relative pb-2 data-table-container opacity-80 hidden">
+                <table class="w-full text-sm text-left">
+                    <thead class="text-xs text-gray-500 uppercase bg-dark-900 border-b border-dark-700" id="closed-data-table-head">
+                        <!-- Dynamically built header -->
+                    </thead>
+                    <tbody id="closed-data-table-body" class="divide-y divide-dark-700/50">
+                        <!-- Dynamically built rows -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div id="no-closed-strategies" class="hidden glass p-8 rounded-xl border border-dark-700 text-center">
+                <i class="ph-duotone ph-archive text-5xl text-gray-500 mb-3"></i>
+                <h3 class="text-xl font-medium text-gray-300">No Closed Strategies</h3>
+                <p class="text-gray-500 mt-2">When you disable a strategy from the settings, its historical data will appear here.</p>
             </div>
         </div>
 
@@ -1462,7 +1473,8 @@
             document.getElementById('dashboard-view').classList.add('hidden');
             document.getElementById('analysis-view').classList.add('hidden');
             document.getElementById('data-view').classList.add('hidden');
-            ['dashboard', 'analysis', 'data'].forEach(t => {
+            document.getElementById('closed-view').classList.add('hidden');
+            ['dashboard', 'analysis', 'data', 'closed'].forEach(t => {
                 document.getElementById(`nav-${t}`).className = "flex items-center gap-3 w-full p-3 rounded-lg text-gray-400 hover:text-white hover:bg-dark-800 transition-all group";
             });
 
@@ -1472,6 +1484,7 @@
             if (tabId === 'dashboard') renderDashboard();
             if (tabId === 'analysis') renderAnalysis();
             if (tabId === 'data') renderDataEntry();
+            if (tabId === 'closed') renderClosedStrategies();
         }
 
         // --- Analysis View Logic (Filters & Sorting) ---
@@ -1614,18 +1627,23 @@
         // --- Data Entry View ---
         function renderDataEntry() {
             const activeStrategies = state.strategies.filter(s => state.strategySettings[s]?.active !== false);
-            const archivedStrategies = state.strategies.filter(s => state.strategySettings[s]?.active === false);
-
+            
             // 1. Render Active Strategies Table
             renderDataTable(activeStrategies, 'data-table-head', 'data-table-body', false);
+        }
+        
+        function renderClosedStrategies() {
+            const archivedStrategies = state.strategies.filter(s => state.strategySettings[s]?.active === false);
+            const container = document.getElementById('closed-strategies-container');
+            const emptyState = document.getElementById('no-closed-strategies');
 
-            // 2. Render Archived Strategies Table (If any exist)
-            const archivedSection = document.getElementById('archived-strategies-section');
             if (archivedStrategies.length > 0) {
-                archivedSection.classList.remove('hidden');
-                renderDataTable(archivedStrategies, 'archived-data-table-head', 'archived-data-table-body', true);
+                container.classList.remove('hidden');
+                emptyState.classList.add('hidden');
+                renderDataTable(archivedStrategies, 'closed-data-table-head', 'closed-data-table-body', true);
             } else {
-                archivedSection.classList.add('hidden');
+                container.classList.add('hidden');
+                emptyState.classList.remove('hidden');
             }
         }
 
@@ -1673,7 +1691,6 @@
                         let numVal = parseFloat(val);
                         let colorClasses = '';
                         
-                        // Check if this index is enabled for this strategy
                         let isIdxEnabled = state.strategySettings[s]?.indices?.[idxName] !== false; 
 
                         if (!isNaN(numVal) && isIdxEnabled) {
@@ -1684,7 +1701,7 @@
                         let tIndex = 1000 + (dateIndex * strategyList.length * INDICES.length) + (sIdx * INDICES.length) + idx;
                         
                         if (isArchived && isIdxEnabled) {
-                             tIndex += 10000; // Push tabindex out of normal flow for archived fields
+                             tIndex += 10000; 
                         }
 
                         if (!isIdxEnabled) {
@@ -1713,7 +1730,8 @@
             document.body.classList.remove('modal-open');
             document.getElementById('strategy-modal').classList.add('hidden');
             document.getElementById('strategy-modal').classList.remove('flex');
-            renderDataEntry();
+            if(currentTab === 'data') renderDataEntry();
+            if(currentTab === 'closed') renderClosedStrategies();
             if(currentTab === 'dashboard') renderDashboard();
             if(currentTab === 'analysis') renderAnalysis();
         }
