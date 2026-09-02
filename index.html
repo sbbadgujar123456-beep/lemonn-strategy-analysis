@@ -680,6 +680,55 @@
                     };
                 }
             });
+            
+            autoDisableInactiveIndices();
+        }
+        
+        function autoDisableInactiveIndices() {
+            if (state.dates.length === 0) return;
+            
+            // Sort dates descending to look at the most recent days first
+            const sortedDates = [...state.dates].sort((a, b) => new Date(b) - new Date(a));
+            
+            let settingsChanged = false;
+
+            state.strategies.forEach(s => {
+                if (state.strategySettings[s] && state.strategySettings[s].active) {
+                    INDICES.forEach(idx => {
+                         // Only check if it's currently enabled
+                         if (state.strategySettings[s].indices[idx]) {
+                             let consecutiveEmpty = 0;
+                             
+                             for (let i = 0; i < sortedDates.length; i++) {
+                                 let d = sortedDates[i];
+                                 let val = state.data[d]?.[idx]?.[s];
+                                 
+                                 // Check if cell is empty
+                                 if (val === undefined || val === null || val === "") {
+                                     consecutiveEmpty++;
+                                     if (consecutiveEmpty >= 4) {
+                                         // Disable it
+                                         state.strategySettings[s].indices[idx] = false;
+                                         settingsChanged = true;
+                                         break; // Stop checking once it hits 4
+                                     }
+                                 } else {
+                                     // Broke the streak, move to next index
+                                     break; 
+                                 }
+                             }
+                         }
+                    });
+                }
+            });
+            
+            if (settingsChanged) {
+                 saveState();
+                 // Re-render Data Entry view if it's active so changes reflect immediately
+                 if (currentTab === 'data') {
+                     renderDataEntry();
+                 }
+            }
         }
 
         function saveState() {
