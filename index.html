@@ -694,6 +694,46 @@
 
             state.strategies.forEach(s => {
                 if (state.strategySettings[s] && state.strategySettings[s].active) {
+                    
+                    // 1. Check if the entire strategy is completely empty across ALL indices for 4 days
+                    let consecutiveEmptyAll = 0;
+                    let completelyEmpty = false;
+                    
+                    for (let i = 0; i < sortedDates.length; i++) {
+                        let d = sortedDates[i];
+                        let isEmptyOnAll = true;
+                        
+                        for (let j = 0; j < INDICES.length; j++) {
+                            let idx = INDICES[j];
+                            let val = state.data[d]?.[idx]?.[s];
+                            if (val !== undefined && val !== null && val !== "") {
+                                isEmptyOnAll = false;
+                                break;
+                            }
+                        }
+                        
+                        if (isEmptyOnAll) {
+                            consecutiveEmptyAll++;
+                            if (consecutiveEmptyAll >= 4) {
+                                completelyEmpty = true;
+                                break;
+                            }
+                        } else {
+                            break; // Broke the streak for the whole strategy
+                        }
+                    }
+                    
+                    if (completelyEmpty) {
+                        state.strategySettings[s].active = false; // Disable the whole strategy
+                        settingsChanged = true;
+                        
+                        // Automatically remove it from combiner if it's selected
+                        combinerState.selectedStrategies = combinerState.selectedStrategies.filter(activeS => activeS !== s);
+                        
+                        return; // Move to the next strategy, skipping individual index checks
+                    }
+
+                    // 2. Check individual indices if the strategy as a whole is not disabled
                     INDICES.forEach(idx => {
                          // Only check if it's currently enabled
                          if (state.strategySettings[s].indices[idx]) {
