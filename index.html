@@ -155,6 +155,11 @@
             opacity: 1;
             color: #6366f1;
         }
+
+        /* Modal specific styles */
+        .modal-open {
+            overflow: hidden;
+        }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden antialiased selection:bg-brand-primary/30">
@@ -446,8 +451,8 @@
                             <i class="ph-bold ph-plus"></i> Add Date
                         </button>
                     </div>
-                    <button onclick="promptAddStrategy()" class="bg-dark-800 hover:bg-dark-700 text-white px-4 py-2 rounded-lg border border-dark-700 transition-colors flex items-center gap-2 text-sm font-medium">
-                        <i class="ph-bold ph-plus-circle"></i> Add Strategy
+                    <button onclick="openStrategyModal()" class="bg-dark-800 hover:bg-dark-700 text-white px-4 py-2 rounded-lg border border-brand-primary/30 shadow-[0_0_15px_rgba(99,102,241,0.15)] transition-colors flex items-center gap-2 text-sm font-medium">
+                        <i class="ph-bold ph-gear"></i> Manage Strategies
                     </button>
                     
                     <div class="w-px h-8 bg-dark-700 mx-1 hidden sm:block"></div>
@@ -462,6 +467,7 @@
                 </div>
             </header>
 
+            <!-- Active Strategies Table -->
             <div class="glass rounded-xl border border-dark-700 overflow-hidden overflow-x-auto shadow-2xl relative pb-2 data-table-container">
                 <table class="w-full text-sm text-left">
                     <thead class="text-xs text-gray-400 uppercase bg-dark-800 border-b border-dark-700" id="data-table-head">
@@ -472,18 +478,63 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Closed / Archived Strategies Section -->
+            <div id="archived-strategies-section" class="mt-12 hidden space-y-4 pt-8 border-t border-dark-700 border-dashed">
+                <div>
+                    <h2 class="text-xl font-bold tracking-tight text-gray-400 flex items-center gap-2">
+                        <i class="ph-fill ph-archive-box"></i> Closed Strategies
+                    </h2>
+                    <p class="text-gray-500 text-sm mt-1">These strategies are disabled in the manager. They are kept here for historical reference.</p>
+                </div>
+                <div class="glass rounded-xl border border-dark-700/50 overflow-hidden overflow-x-auto shadow-2xl relative pb-2 data-table-container opacity-80">
+                    <table class="w-full text-sm text-left">
+                        <thead class="text-xs text-gray-500 uppercase bg-dark-900 border-b border-dark-700" id="archived-data-table-head">
+                            <!-- Dynamically built header -->
+                        </thead>
+                        <tbody id="archived-data-table-body" class="divide-y divide-dark-700/50">
+                            <!-- Dynamically built rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
     </main>
 
+    <!-- Strategy Manager Modal -->
+    <div id="strategy-modal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+        <div class="glass p-6 rounded-2xl w-full max-w-4xl border border-dark-700 shadow-[0_0_40px_rgba(0,0,0,0.5)] max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-white flex items-center gap-2"><i class="ph-fill ph-sliders"></i> Strategy Manager</h2>
+                    <p class="text-gray-400 text-sm mt-1">Rename, enable/disable globally, or configure specific indices.</p>
+                </div>
+                <button onclick="closeStrategyModal()" class="text-gray-400 hover:text-white bg-dark-800 hover:bg-dark-700 p-2 rounded-lg transition-colors">
+                    <i class="ph-bold ph-x"></i>
+                </button>
+            </div>
+            
+            <div class="flex gap-3 mb-6 bg-dark-800 p-3 rounded-xl border border-dark-700">
+                <input type="text" id="new-strategy-name" class="data-input !text-left flex-1 bg-dark-900 border-dark-600 focus:border-brand-primary" placeholder="Enter a new strategy name..." onkeydown="if(event.key === 'Enter') addNewStrategy()">
+                <button onclick="addNewStrategy()" class="bg-brand-primary hover:bg-brand-accent text-white px-6 py-2 rounded-lg font-medium transition-colors shadow-lg">Add Strategy</button>
+            </div>
+
+            <div class="overflow-y-auto flex-1 pr-2 space-y-4 custom-scrollbar" id="strategy-manager-list">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+    </div>
+
     <!-- JavaScript Logic -->
     <script>
         // --- Core State Management ---
-        const STORAGE_KEY = 'quant_dashboard_data_v6'; 
+        const STORAGE_KEY = 'quant_dashboard_data_v7'; 
         const INDICES = ['Nifty', 'Sensex', 'Banknifty', 'FnOStocks']; 
         
         let state = {
             strategies: ['SwingKing Sniper', 'Booming Bulls', 'Bullseys', 'Aakash'],
+            strategySettings: {}, // New: stores configuration for each strategy
             dates: [], 
             deletedDates: [], 
             data: {}, 
@@ -596,6 +647,7 @@
                     state.data = parsed.data || state.data;
                     state.deletedDates = parsed.deletedDates || [];
                     state.expiries = parsed.expiries || state.expiries;
+                    state.strategySettings = parsed.strategySettings || {};
                     
                     state.dates.forEach(d => {
                         INDICES.forEach(idx => {
@@ -607,6 +659,16 @@
                     console.error("Failed to parse local storage", e);
                 }
             }
+
+            // Ensure settings exist for all strategies
+            state.strategies.forEach(s => {
+                if (!state.strategySettings[s]) {
+                    state.strategySettings[s] = {
+                        active: true,
+                        indices: { Nifty: true, Sensex: true, Banknifty: true, FnOStocks: true }
+                    };
+                }
+            });
         }
 
         function saveState() {
@@ -638,12 +700,25 @@
                     const importedState = JSON.parse(e.target.result);
                     if (importedState.strategies && importedState.data && importedState.dates) {
                         state = importedState;
+                        // Force migration on imported data for all indices
                         state.dates.forEach(d => {
                             INDICES.forEach(idx => {
                                 if (!state.data[d][idx]) state.data[d][idx] = {};
                                 if (state.expiries[d][idx] === undefined) state.expiries[d][idx] = false;
                             });
                         });
+                        
+                        // Fix strategy settings if missing from imported JSON
+                        if(!state.strategySettings) state.strategySettings = {};
+                        state.strategies.forEach(s => {
+                            if (!state.strategySettings[s]) {
+                                state.strategySettings[s] = {
+                                    active: true,
+                                    indices: { Nifty: true, Sensex: true, Banknifty: true, FnOStocks: true }
+                                };
+                            }
+                        });
+
                         saveState();
                         alert("✅ Data imported successfully!");
                         location.reload(); 
@@ -1081,6 +1156,7 @@
             
             let expiryCandidates = [];
             let normalCandidates = [];
+            let dowCandidates = [];
             let fnoCandidates = [];
 
             INDICES.forEach(index => {
@@ -1088,32 +1164,44 @@
                     const m = allMetrics[index][s];
                     if (m.returns.length > maxDataPoints) maxDataPoints = m.returns.length;
 
-                    // Overall Best (Relaxed DD to 120%, Added R:R filter)
-                    if (m.returns.length >= 7 && m.totalRet > 0 && m.score >= 3.0 && m.maxDD <= 120 && m.rrRatio >= 1.2 && m.score > highestScore) {
+                    // Overall Best (Relaxed DD to -120%, Enforced R:R > 1.2)
+                    if (m.returns.length >= 7 && m.totalRet > 0 && m.score >= 4.0 && m.maxDD <= 120 && m.rrRatio >= 1.2 && m.score > highestScore) {
                         highestScore = m.score; 
                         bestOverall = { strategy: s, index: index, metrics: m };
                     }
 
+                    // Collect candidates for Edge Insights (Requiring at least 10 data points)
                     if (m.expiryCount >= 10 && m.expiryWr >= 50 && m.expiryAvg > 0) {
                         expiryCandidates.push({ strategy: s, index: index, avg: m.expiryAvg, metrics: m });
                     }
 
+                    // Non-Expiry Safe Haven
                     if (m.normalCount >= 10 && m.normalWr >= 50 && m.normalAvg > 0) {
                         normalCandidates.push({ strategy: s, index: index, avg: m.normalAvg, metrics: m });
                     }
-                    
+
+                    // Day of Week Edge
+                    for(let i = 1; i <= 5; i++) {
+                        let dow = m.dowAvgs[i];
+                        if (dow.count >= 10 && dow.wr >= 60 && dow.avg > 0) {
+                            dowCandidates.push({ strategy: s, index: index, day: i, avg: dow.avg, wr: dow.wr, count: dow.count, metrics: m });
+                        }
+                    }
+
+                    // FnO Best Edge
                     if (index === 'FnOStocks' && m.returns.length >= 7 && m.totalRet > 0) {
                          fnoCandidates.push({ strategy: s, index: index, score: m.score, metrics: m });
                     }
                 });
             });
 
-            // Sort candidates to find the best ones
+            // Sort candidates by appropriate primary metric
             expiryCandidates.sort((a, b) => b.avg - a.avg);
             normalCandidates.sort((a, b) => b.avg - a.avg);
+            dowCandidates.sort((a, b) => b.avg - a.avg);
             fnoCandidates.sort((a, b) => b.score - a.score);
 
-            // Ensure uniqueness across recommendations
+            // Ensure unique recommendations across all categories
             let recommendedIds = new Set();
             if (bestOverall) recommendedIds.add(`${bestOverall.strategy}-${bestOverall.index}`);
 
@@ -1136,7 +1224,7 @@
                     break;
                 }
             }
-
+            
             let bestFnO = null;
             for (let c of fnoCandidates) {
                  let id = `${c.strategy}-${c.index}`;
@@ -1145,6 +1233,16 @@
                      recommendedIds.add(id);
                      break;
                  }
+            }
+
+            // For DOW, pick the best one remaining
+            let bestDOW = null;
+            for (let candidate of dowCandidates) {
+                let id = `${candidate.strategy}-${candidate.index}`;
+                if (!recommendedIds.has(id)) {
+                    bestDOW = candidate;
+                    break;
+                }
             }
 
             const recContent = document.getElementById('recommendation-content');
@@ -1157,7 +1255,7 @@
                         ${bestOverall.strategy} <span class="text-brand-primary text-xl font-normal">on ${bestOverall.index}</span>
                         <span class="text-brand-success text-xs border border-brand-success px-2 py-0.5 rounded-full ml-2">${m.score.toFixed(1)}/10 Score</span>
                     </h2>
-                    <p class="text-gray-400 mb-6 max-w-3xl text-sm leading-relaxed">Highest rated individual strategy passing risk filters (Max DD < 120%, R:R > 1.2, Total Return > 0%). <strong class="text-gray-300">Overall Balanced.</strong></p>
+                    <p class="text-gray-400 mb-6 max-w-3xl text-sm leading-relaxed">Highest rated individual strategy passing strict risk filters (Max DD < 120%, R:R > 1.2, Total Return > 0%). <strong class="text-gray-300">Overall Balanced.</strong></p>
                     <div class="grid grid-cols-2 md:grid-cols-6 gap-4 mt-6">
                         <div><p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Score (/10)</p><p class="text-2xl font-bold text-brand-primary">${m.score.toFixed(1)}</p></div>
                         <div><p class="text-xs text-gray-500 uppercase tracking-wider mb-1">R:R Ratio</p><p class="text-2xl font-bold text-brand-success">${m.rrRatio === 99 ? '∞' : m.rrRatio.toFixed(2)}</p></div>
@@ -1195,20 +1293,21 @@
 
             // --- Construct Edge Insights ---
             let insightsHTML = '';
+            const daysStr = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
-            if (bestExpiry) {
+            if (bestExpiry && bestExpiry.metrics.expiryAvg > 0) {
                 insightsHTML += `
                 <div class="bg-brand-warning/10 p-4 rounded-xl border border-brand-warning/20 transition-all hover:bg-brand-warning/20">
-                    <h4 class="text-brand-warning font-bold flex items-center gap-2 mb-2"><i class="ph-fill ph-lightning"></i> Best on Expiry</h4>
+                    <h4 class="text-brand-warning font-bold flex items-center gap-2 mb-2"><i class="ph-fill ph-lightning"></i> Expiry Master</h4>
                     <p class="text-white font-semibold text-sm truncate" title="${bestExpiry.strategy} (${bestExpiry.index})">${bestExpiry.strategy} <span class="text-gray-400 font-normal">(${bestExpiry.index})</span></p>
                     <p class="text-gray-400 text-xs mt-1.5 leading-relaxed">Averages <span class="text-brand-success font-bold">+${bestExpiry.metrics.expiryAvg.toFixed(2)}%</span> on Expiry days with a <span class="text-white">${bestExpiry.metrics.expiryWr.toFixed(0)}%</span> win rate.</p>
                 </div>`;
             }
 
-            if (bestNormal) {
+            if (bestNormal && bestNormal.metrics.normalAvg > 0) {
                 insightsHTML += `
                 <div class="bg-brand-success/10 p-4 rounded-xl border border-brand-success/20 transition-all hover:bg-brand-success/20">
-                    <h4 class="text-brand-success font-bold flex items-center gap-2 mb-2"><i class="ph-fill ph-shield-check"></i> Best on Non-Expiry</h4>
+                    <h4 class="text-brand-success font-bold flex items-center gap-2 mb-2"><i class="ph-fill ph-shield-check"></i> Safe Haven (Non-Exp)</h4>
                     <p class="text-white font-semibold text-sm truncate" title="${bestNormal.strategy} (${bestNormal.index})">${bestNormal.strategy} <span class="text-gray-400 font-normal">(${bestNormal.index})</span></p>
                     <p class="text-gray-400 text-xs mt-1.5 leading-relaxed">Most reliable on Non-Expiry days, averaging <span class="text-brand-success font-bold">+${bestNormal.metrics.normalAvg.toFixed(2)}%</span> (<span class="text-white">${bestNormal.metrics.normalWr.toFixed(0)}%</span> WR).</p>
                 </div>`;
@@ -1220,6 +1319,13 @@
                     <h4 class="text-brand-special font-bold flex items-center gap-2 mb-2"><i class="ph-fill ph-trend-up"></i> Best in FnO</h4>
                     <p class="text-white font-semibold text-sm truncate" title="${bestFnO.strategy} (${bestFnO.index})">${bestFnO.strategy} <span class="text-gray-400 font-normal">(${bestFnO.index})</span></p>
                     <p class="text-gray-400 text-xs mt-1.5 leading-relaxed">Top performing FnO strategy. Score: <span class="text-white font-bold">${bestFnO.metrics.score.toFixed(1)}</span>, Total Ret: <span class="text-brand-success font-bold">+${bestFnO.metrics.totalRet.toFixed(2)}%</span>.</p>
+                </div>`;
+            } else if (bestDOW && bestDOW.avg > 0) {
+                insightsHTML += `
+                <div class="bg-brand-accent/10 p-4 rounded-xl border border-brand-accent/20 transition-all hover:bg-brand-accent/20">
+                    <h4 class="text-brand-accent font-bold flex items-center gap-2 mb-2"><i class="ph-fill ph-calendar-check"></i> ${daysStr[bestDOW.day]} Edge</h4>
+                    <p class="text-white font-semibold text-sm truncate" title="${bestDOW.strategy} (${bestDOW.index})">${bestDOW.strategy} <span class="text-gray-400 font-normal">(${bestDOW.index})</span></p>
+                    <p class="text-gray-400 text-xs mt-1.5 leading-relaxed">Consistently performs on ${daysStr[bestDOW.day]}s, averaging <span class="text-brand-success font-bold">+${bestDOW.avg.toFixed(2)}%</span> (<span class="text-white">${bestDOW.wr.toFixed(0)}%</span> WR).</p>
                 </div>`;
             }
 
@@ -1243,6 +1349,7 @@
                 const tableDiv = document.getElementById(`best${index}ComboTable`);
                 
                 if (bestCombo) {
+                    // Improved layout for stats to prevent text merging, added R:R ratio
                     statsDiv.innerHTML = `
                         <div class="bg-dark-900/50 p-4 rounded-lg border border-dark-700 mt-2 space-y-2">
                             <div class="flex justify-between items-start gap-4">
@@ -1266,7 +1373,7 @@
                     state.strategies.forEach(s => { if(allMetrics[index][s].returns.length > indexMaxPts) indexMaxPts = allMetrics[index][s].returns.length; });
                     
                     if (indexMaxPts >= 7) {
-                        statsDiv.innerHTML = `<div class="bg-brand-danger/10 text-brand-danger text-sm p-4 rounded-lg border border-brand-danger/20 flex items-start gap-3 mt-2"><i class="ph-bold ph-x-circle text-xl mt-0.5 shrink-0"></i> <span>No combo passes criteria (DD < 120%, R:R > 1.2, Pos Return).</span></div>`;
+                        statsDiv.innerHTML = `<div class="bg-brand-danger/10 text-brand-danger text-sm p-4 rounded-lg border border-brand-danger/20 flex items-start gap-3 mt-2"><i class="ph-bold ph-x-circle text-xl mt-0.5 shrink-0"></i> <span>No combo passes criteria (DD < 30%, Pos Return).</span></div>`;
                     } else {
                         statsDiv.innerHTML = `<div class="bg-brand-warning/10 text-brand-warning text-sm p-4 rounded-lg border border-brand-warning/20 flex items-center gap-3 mt-2"><i class="ph-bold ph-hourglass text-xl shrink-0"></i> <span>Need 7+ days of data.</span></div>`;
                     }
@@ -1310,6 +1417,9 @@
             const checkboxContainer = document.getElementById('combiner-checkboxes');
             let checksHTML = '';
             state.strategies.forEach((s, i) => {
+                // Only show active strategies in the manual combiner
+                if (state.strategySettings[s] && !state.strategySettings[s].active) return;
+                
                 const isChecked = combinerState.selectedStrategies.includes(s);
                 let sColor = colors[i % colors.length];
                 checksHTML += `
@@ -1503,12 +1613,32 @@
 
         // --- Data Entry View ---
         function renderDataEntry() {
-            const head = document.getElementById('data-table-head');
-            const tbody = document.getElementById('data-table-body');
+            const activeStrategies = state.strategies.filter(s => state.strategySettings[s]?.active !== false);
+            const archivedStrategies = state.strategies.filter(s => state.strategySettings[s]?.active === false);
 
-            let headHTML = `<tr><th class="px-4 py-3 sticky left-0 bg-dark-800 z-30 min-w-[140px] w-[140px]">Date</th><th class="px-4 py-3 sticky left-[140px] bg-dark-800 z-30 border-r border-dark-700 min-w-[120px] w-[120px] shadow-[4px_0_10px_rgba(0,0,0,0.3)]">Index</th>`;
-            state.strategies.forEach(s => { 
-                headHTML += `<th class="px-4 py-3 text-right min-w-[160px]"><div class="flex items-center justify-end gap-2"><span>${s}</span><button onclick="deleteStrategy('${s}')" class="text-gray-600 hover:text-brand-danger transition-colors" title="Delete Strategy"><i class="ph-bold ph-trash"></i></button></div></th>`; 
+            // 1. Render Active Strategies Table
+            renderDataTable(activeStrategies, 'data-table-head', 'data-table-body', false);
+
+            // 2. Render Archived Strategies Table (If any exist)
+            const archivedSection = document.getElementById('archived-strategies-section');
+            if (archivedStrategies.length > 0) {
+                archivedSection.classList.remove('hidden');
+                renderDataTable(archivedStrategies, 'archived-data-table-head', 'archived-data-table-body', true);
+            } else {
+                archivedSection.classList.add('hidden');
+            }
+        }
+
+        function renderDataTable(strategyList, headId, bodyId, isArchived) {
+            const head = document.getElementById(headId);
+            const tbody = document.getElementById(bodyId);
+
+            let headerBgClass = isArchived ? "bg-dark-900" : "bg-dark-800";
+            
+            let headHTML = `<tr><th class="px-4 py-3 sticky left-0 ${headerBgClass} z-30 min-w-[140px] w-[140px]">Date</th><th class="px-4 py-3 sticky left-[140px] ${headerBgClass} z-30 border-r border-dark-700 min-w-[120px] w-[120px] shadow-[4px_0_10px_rgba(0,0,0,0.3)]">Index</th>`;
+            
+            strategyList.forEach(s => { 
+                headHTML += `<th class="px-4 py-3 text-right min-w-[160px] whitespace-nowrap"><span class="text-gray-300 font-medium">${s}</span></th>`; 
             });
             headHTML += `</tr>`;
             head.innerHTML = headHTML;
@@ -1528,54 +1658,196 @@
                     if(idxName === 'Banknifty') idxColor = "text-brand-info"; 
                     if(idxName === 'FnOStocks') idxColor = "text-brand-special"; 
 
-                    bodyHTML += `<tr class="group hover:bg-dark-800 transition-colors ${rowClass}">
-                        <td class="px-4 py-3 whitespace-nowrap bg-dark-900 group-hover:bg-dark-800 border-r border-dark-700 sticky left-0 z-20 font-medium min-w-[140px] w-[140px]">
+                    let stickyBgClass = isArchived ? "bg-dark-900/50" : "bg-dark-900 group-hover:bg-dark-800";
+
+                    bodyHTML += `<tr class="group transition-colors ${rowClass} ${!isArchived ? 'hover:bg-dark-800' : 'bg-dark-900/30'}">
+                        <td class="px-4 py-3 whitespace-nowrap ${stickyBgClass} border-r border-dark-700 sticky left-0 z-20 font-medium min-w-[140px] w-[140px]">
                             ${idx === 0 ? `<div class="flex items-center justify-between">${date}<button onclick="deleteDate('${date}')" class="text-dark-600 hover:text-brand-danger"><i class="ph-bold ph-x"></i></button></div>` : ''}
                         </td>
-                        <td class="px-4 py-3 ${idxColor} font-semibold bg-dark-900 group-hover:bg-dark-800 border-r border-dark-700 sticky left-[140px] z-20 min-w-[120px] w-[120px] shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
+                        <td class="px-4 py-3 ${idxColor} font-semibold ${stickyBgClass} border-r border-dark-700 sticky left-[140px] z-20 min-w-[120px] w-[120px] shadow-[4px_0_10px_rgba(0,0,0,0.3)]">
                             <div class="flex items-center justify-between"><span>${idxName === 'FnOStocks' ? 'FnO Stocks' : idxName}</span><button onclick="toggleExpiryUI(this, '${date}', '${idxName}')" class="text-[10px] font-bold px-2.5 py-1 rounded transition-all duration-300 border cursor-pointer uppercase ${expClass}">Exp</button></div>
                         </td>`;
                     
-                    state.strategies.forEach((s, sIdx) => {
+                    strategyList.forEach((s, sIdx) => {
                         let val = state.data[date]?.[idxName]?.[s] ?? '';
                         let numVal = parseFloat(val);
                         let colorClasses = '';
                         
-                        if (!isNaN(numVal)) {
+                        // Check if this index is enabled for this strategy
+                        let isIdxEnabled = state.strategySettings[s]?.indices?.[idxName] !== false; 
+
+                        if (!isNaN(numVal) && isIdxEnabled) {
                             if (numVal > 0) colorClasses = '!bg-brand-success/10 !border-brand-success/50 !text-brand-success';
                             else if (numVal < 0) colorClasses = '!bg-brand-danger/10 !border-brand-danger/50 !text-brand-danger';
                         }
                         
-                        let tIndex = 1000 + (dateIndex * state.strategies.length * INDICES.length) + (sIdx * INDICES.length) + idx;
+                        let tIndex = 1000 + (dateIndex * strategyList.length * INDICES.length) + (sIdx * INDICES.length) + idx;
+                        
+                        if (isArchived && isIdxEnabled) {
+                             tIndex += 10000; // Push tabindex out of normal flow for archived fields
+                        }
 
-                        bodyHTML += `<td class="px-4 py-3"><input type="number" tabindex="${tIndex}" step="any" class="data-input transition-colors duration-300 ${colorClasses}" placeholder="0.00" value="${val}" oninput="updateInputColor(this)" onchange="updateData('${date}', '${idxName}', '${s}', this.value)"></td>`;
+                        if (!isIdxEnabled) {
+                            bodyHTML += `<td class="px-4 py-3 bg-dark-900/20"><input type="text" disabled tabindex="-1" class="data-input border-dark-700/30 bg-transparent opacity-20 cursor-not-allowed text-center" value="-" title="${idxName} is disabled for ${s}"></td>`;
+                        } else {
+                            bodyHTML += `<td class="px-4 py-3"><input type="number" tabindex="${tIndex}" step="any" class="data-input transition-colors duration-300 ${colorClasses}" placeholder="0.00" value="${val}" oninput="updateInputColor(this)" onchange="updateData('${date}', '${idxName}', '${s}', this.value)"></td>`;
+                        }
                     });
                     bodyHTML += `</tr>`;
                 });
                 dateIndex++;
             });
 
-            tbody.innerHTML = bodyHTML || `<tr><td colspan="${state.strategies.length + 2}" class="text-center py-8 text-gray-500">No dates generated.</td></tr>`;
+            tbody.innerHTML = bodyHTML || `<tr><td colspan="${strategyList.length + 2}" class="text-center py-8 text-gray-500">No data found.</td></tr>`;
         }
 
-        function promptAddStrategy() {
-            const name = prompt("Enter new strategy name:");
-            if (name && name.trim() && !state.strategies.includes(name.trim())) {
-                state.strategies.push(name.trim());
-                saveState(); renderDataEntry();
+        // --- Strategy Manager Logic ---
+        function openStrategyModal() {
+            document.body.classList.add('modal-open');
+            document.getElementById('strategy-modal').classList.remove('hidden');
+            document.getElementById('strategy-modal').classList.add('flex');
+            renderStrategyManagerList();
+        }
+
+        function closeStrategyModal() {
+            document.body.classList.remove('modal-open');
+            document.getElementById('strategy-modal').classList.add('hidden');
+            document.getElementById('strategy-modal').classList.remove('flex');
+            renderDataEntry();
+            if(currentTab === 'dashboard') renderDashboard();
+            if(currentTab === 'analysis') renderAnalysis();
+        }
+
+        function renderStrategyManagerList() {
+            const listEl = document.getElementById('strategy-manager-list');
+            let html = '';
+            
+            state.strategies.forEach((s, i) => {
+                let settings = state.strategySettings[s] || { active: true, indices: { Nifty: true, Sensex: true, Banknifty: true, FnOStocks: true } };
+                let isArchived = !settings.active;
+                
+                html += `
+                <div class="bg-dark-900 p-4 rounded-xl border ${isArchived ? 'border-dark-700 opacity-60' : 'border-dark-600'} flex flex-col gap-3 transition-all hover:border-brand-primary/50 relative">
+                    ${isArchived ? '<div class="absolute top-0 right-0 bg-dark-700 text-xs px-2 py-0.5 rounded-bl-lg rounded-tr-xl font-medium text-gray-400">Closed</div>' : ''}
+                    <div class="flex items-center justify-between gap-4 mt-2 sm:mt-0">
+                        <div class="flex-1 flex items-center gap-3">
+                            <span class="w-3 h-3 rounded-full" style="background-color: ${colors[i % colors.length]}"></span>
+                            <input type="text" class="bg-transparent border-b border-transparent hover:border-dark-600 focus:border-brand-primary outline-none font-bold text-white text-lg w-full transition-colors py-1" value="${s}" onchange="renameStrategy('${s}', this.value)" title="Edit strategy name">
+                        </div>
+                        <div class="flex items-center gap-4 shrink-0">
+                            <label class="flex items-center gap-2 cursor-pointer text-sm font-medium ${isArchived ? 'text-gray-500' : 'text-brand-success'}">
+                                <input type="checkbox" class="custom-checkbox" ${!isArchived ? 'checked' : ''} onchange="toggleStrategyActive('${s}', this.checked)"> Active
+                            </label>
+                            <button onclick="deleteStrategy('${s}')" class="text-dark-600 hover:text-brand-danger transition-colors p-1" title="Delete Strategy"><i class="ph-bold ph-trash text-lg"></i></button>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-x-6 gap-y-2 items-center text-sm text-gray-400 bg-dark-800 p-3 rounded-lg border border-dark-700 mt-1">
+                        <span class="mr-2 text-xs font-bold uppercase tracking-wider text-gray-500"><i class="ph-bold ph-target"></i> Allowed Indices:</span>
+                        ${INDICES.map(idx => {
+                            let idxColor = idx === 'Nifty' ? 'text-brand-primary' : (idx === 'Sensex' ? 'text-brand-accent' : (idx === 'Banknifty' ? 'text-brand-info' : 'text-brand-special'));
+                            return `
+                            <label class="flex items-center gap-2 cursor-pointer hover:text-white transition-colors">
+                                <input type="checkbox" class="custom-checkbox !border-gray-500 checked:!border-[color:currentColor]" ${settings.indices[idx] ? 'checked' : ''} onchange="toggleStrategyIndex('${s}', '${idx}', this.checked)"> 
+                                <span class="${settings.indices[idx] ? idxColor : 'text-gray-500 line-through decoration-gray-500/50'}">${idx === 'FnOStocks' ? 'FnO' : idx}</span>
+                            </label>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>`;
+            });
+            
+            listEl.innerHTML = html;
+        }
+
+        function addNewStrategy() {
+            const input = document.getElementById('new-strategy-name');
+            const name = input.value.trim();
+            if (name) {
+                if (state.strategies.includes(name)) {
+                    alert("A strategy with this name already exists.");
+                    return;
+                }
+                state.strategies.push(name);
+                state.strategySettings[name] = {
+                    active: true,
+                    indices: { Nifty: true, Sensex: true, Banknifty: true, FnOStocks: true }
+                };
+                input.value = '';
+                saveState();
+                renderStrategyManagerList();
             }
         }
 
-        function deleteStrategy(strategyName) {
-            if (confirm(`Are you sure you want to delete the strategy "${strategyName}" and all of its data? This action cannot be undone.`)) {
-                state.strategies = state.strategies.filter(s => s !== strategyName);
+        function renameStrategy(oldName, newName) {
+            newName = newName.trim();
+            if (!newName || newName === oldName) return;
+            
+            if (state.strategies.includes(newName)) {
+                alert(`The name "${newName}" is already taken.`);
+                renderStrategyManagerList(); // revert UI change
+                return;
+            }
+
+            // Update strategies array
+            let idx = state.strategies.indexOf(oldName);
+            state.strategies[idx] = newName;
+
+            // Update settings object
+            state.strategySettings[newName] = state.strategySettings[oldName];
+            delete state.strategySettings[oldName];
+
+            // Update underlying historical data
+            for (let d in state.data) {
+                INDICES.forEach(i => {
+                    if (state.data[d][i] && state.data[d][i][oldName] !== undefined) {
+                        state.data[d][i][newName] = state.data[d][i][oldName];
+                        delete state.data[d][i][oldName];
+                    }
+                });
+            }
+
+            // Update Combiner Selection State
+            let cIdx = combinerState.selectedStrategies.indexOf(oldName);
+            if (cIdx > -1) combinerState.selectedStrategies[cIdx] = newName;
+
+            saveState();
+            renderStrategyManagerList();
+        }
+
+        function toggleStrategyActive(strategyName, isActive) {
+            if (!state.strategySettings[strategyName]) return;
+            state.strategySettings[strategyName].active = isActive;
+            
+            // Remove from combiner if disabled
+            if (!isActive) {
                 combinerState.selectedStrategies = combinerState.selectedStrategies.filter(s => s !== strategyName);
+            }
+            
+            saveState();
+            renderStrategyManagerList();
+        }
+
+        function toggleStrategyIndex(strategyName, indexName, isEnabled) {
+            if (!state.strategySettings[strategyName]) return;
+            state.strategySettings[strategyName].indices[indexName] = isEnabled;
+            saveState();
+            renderStrategyManagerList();
+        }
+
+        function deleteStrategy(strategyName) {
+            if (confirm(`Are you sure you want to delete the strategy "${strategyName}" and ALL of its historical data? This action cannot be undone.`)) {
+                state.strategies = state.strategies.filter(s => s !== strategyName);
+                delete state.strategySettings[strategyName];
+                combinerState.selectedStrategies = combinerState.selectedStrategies.filter(s => s !== strategyName);
+                
                 for (let date in state.data) {
                     INDICES.forEach(idx => {
                         if (state.data[date][idx]) delete state.data[date][idx][strategyName];
                     });
                 }
-                saveState(); renderDataEntry();
+                saveState(); 
+                renderStrategyManagerList();
             }
         }
 
